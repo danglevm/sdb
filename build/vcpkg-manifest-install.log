@@ -1,0 +1,29 @@
+Detecting compiler hash for triplet x64-linux...
+Compiler found: /usr/bin/c++
+All requested packages are currently installed.
+Total install time: 40.6 us
+catch2 provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(Catch2 CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
+
+catch2 provides pkg-config modules:
+
+  # A modern, C++-native test framework for C++14 and above (links in default main)
+  catch2-with-main
+
+  # A modern, C++-native, test framework for C++14 and above
+  catch2
+
+the package readline can be used under windows via:
+
+    find_package(unofficial-readline-win32 CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE unofficial::readline-win32::readline)
+
+The package readline can be imported via the CMake FindPkgConfig module:
+    
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(readline REQUIRED IMPORTED_TARGET readline)
+    target_link_libraries(main PRIVATE PkgConfig::readline)
+

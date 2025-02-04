@@ -1,0 +1,52 @@
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 262fcaa98ccd83ba28fb4e080836160814d29872e101b13398679088a7caed73
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 58e240ad09f2b3317f9fd5b70a10abc6b9f4ed27957ab31ae7387c7acec47093
+Status: install ok installed
+
+Package: catch2
+Version: 3.8.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: ce5bc3c2452ee0d595898543f54690267f5d7ab7542ec1d46d3459645e186963
+Description: A modern, C++-native, test framework for unit-tests, TDD and BDD.
+Status: install ok installed
+
+Package: ncurses
+Version: 6.4
+Port-Version: 2
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 806d43dcb6ad321206c4c7ba873672623256d974397019d9db66e050b212564d
+Description: Free software emulation of curses in System V Release 4.0, and more
+Status: install ok installed
+
+Package: readline-unix
+Version: 8.2
+Port-Version: 1
+Depends: ncurses
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 50276502c3bdc8beb88753ec4d7a10e5fa10e0bee8ca6a84af589ad55fc482d9
+Description: The GNU Readline library provides a set of functions for use by applications that allow users to edit command lines as they are typed in.
+Status: install ok installed
+
+Package: readline
+Version: 0
+Port-Version: 5
+Depends: readline-unix
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 039231b6a8e4d39c3de06920e09181fc34aba5ee075c7945ac8d28d9d1f6f3b5
+Description: GNU readline and history libraries
+Status: install ok installed
+

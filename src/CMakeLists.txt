@@ -6,6 +6,7 @@ install(
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+# export
 install(
     EXPORT sdb-targets 
     FILE sdb-config.cmake  
@@ -14,7 +15,7 @@ install(
 )
 
 
-add_library(libsdb libsdb.cpp) # add the following source code to be compiled as a library
+add_library(libsdb process.cpp) # add the following source code to be compiled as a library
 add_library(sdb::libsdb ALIAS libsdb) # use a namespaced library target and give it a new name
 
 # Linux outputs library called lib<target_name>. We refine it to sdb
@@ -44,7 +45,9 @@ target_include_directories(
         ${CMAKE_SOURCE_DIR}/src/include
 )       
 
-# export target called sdb-targets with information about where to install different components of the project
+# export targets libsdb as sdb0targets called sdb-targets with information about where to install different components of the project
+# marks libsdb to be exported as part of the sdb-target export set
+# enables other projects to import libsdb later using find_package(sdb)
 install(TARGETS libsdb
     EXPORT sdb-targets 
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

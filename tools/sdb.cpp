@@ -54,6 +54,7 @@ namespace
     }
 
     /* indicates whether a string is equal to a prefix of another string */
+    /* used to check for a string whether it's equal or not */
     bool is_prefix(std::string_view prefix, std::string_view str) 
     {   
         if (prefix.size() > str.size())

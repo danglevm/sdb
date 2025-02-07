@@ -1,6 +1,0 @@
-x64-linux/
-x64-linux/share/
-x64-linux/share/readline/
-x64-linux/share/readline/usage
-x64-linux/share/readline/vcpkg.spdx.json
-x64-linux/share/readline/vcpkg_abi_info.txt

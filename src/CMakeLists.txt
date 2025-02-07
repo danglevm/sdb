@@ -1,6 +1,5 @@
 include(GNUInstallDirs)
 
-
 install(
     DIRECTORY ${PROJECT_SOURCE_DIR}/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -15,7 +14,7 @@ install(
 )
 
 
-add_library(libsdb process.cpp) # add the following source code to be compiled as a library
+add_library(libsdb process.cpp pipe.cpp) # add the following source code to be compiled as a library
 add_library(sdb::libsdb ALIAS libsdb) # use a namespaced library target and give it a new name
 
 # Linux outputs library called lib<target_name>. We refine it to sdb
@@ -45,7 +44,7 @@ target_include_directories(
         ${CMAKE_SOURCE_DIR}/src/include
 )       
 
-# export targets libsdb as sdb0targets called sdb-targets with information about where to install different components of the project
+# export targets libsdb as sdbtargets called sdb-targets with information about where to install different components of the project
 # marks libsdb to be exported as part of the sdb-target export set
 # enables other projects to import libsdb later using find_package(sdb)
 install(TARGETS libsdb

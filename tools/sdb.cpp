@@ -148,7 +148,8 @@ namespace
                 }
             }
             else {   
-            /* if the line is non-empty, we retrieve the line from readline history */
+                /* if the line is non-empty, we retrieve the line from readline history */
+                /* remember the last line we read into history */
                 line_str = line;
                 add_history(line);
                 free(line);

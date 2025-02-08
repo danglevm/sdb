@@ -1,9 +1,11 @@
+#include <string>
 #include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
 #include <libsdb/process.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <libsdb/error.hpp>
+#include <fstream>
 
 using namespace sdb;
 namespace {
@@ -11,18 +13,85 @@ namespace {
         auto ret = kill(pid, 0);
         return (ret != -1 and errno != ESRCH);
     };
+
+    char get_process_status(pid_t pid) {
+        /* open process file for reading */
+        std::ifstream stat("/proc/" + std::to_string(pid) + "/stat");
+        std::string data;
+        std::getline(stat, data);
+        auto index_of_last_parenthesis = data.rfind(')');
+        auto index_of_status_indicator = index_of_last_parenthesis + 2;
+        return data[index_of_status_indicator];
+    }
 }
 
+
+/********************************************************** 
+* PROCESS ATTACH
+********************************************************** */
+/* launch without attaching */
+/* launch a test process and attach to it */
+TEST_CASE("process::attach success", "[process]") {
+    auto target = Process::launch("targets/run_endlessly", false); //don't attach to process
+    auto proc = Process::attach(target->get_pid());
+    REQUIRE(get_process_status(target->get_pid()) == 't');
+}
+
+TEST_CASE("process:attach invalid PID", "[process]") {
+    REQUIRE_THROWS_AS(Process::attach(0), error);
+}
+
+
+/********************************************************** 
+* PROCESS LAUNCH
+********************************************************** */
+/* Insufficient permissions for PTRACE_TRACEME (launching) */
+/* process exists after launching */
 TEST_CASE("Process::launch success", "[process]")
 {
-    auto proc = Process::launch("y"); /* launches on the command yes and should pass */
+    auto proc = Process::launch("yes"); /* launches on the command yes and should pass */
     REQUIRE(process_exists(proc->get_pid()));
 }
 
+/* Couldn't launch/execute a program */
+/* ensures sdb::process throws an sdb::error exception when launching a non-existent program */
 TEST_CASE("Process::launch no such program", "[process]")
 {
     /* an exception is thrown as a certain type */
     /* fails when an exception is not found */
     /* might be a problem when the child process throws an exception but doesn't send said exception to the parent */
     REQUIRE_THROWS_AS(Process::launch("Boom_test_failure_program"), error);
+}
+
+
+/********************************************************** 
+* PROCESS RESUME
+********************************************************** */
+
+TEST_CASE("process::resume success", "[process]") {
+/* reuse names within test cases */
+    {
+        auto proc = Process::launch("targets/run_endlessly");
+        proc->resume();
+        auto status = get_process_status(proc->get_pid());
+        auto success = status == 'S' or status == 'R';
+        REQUIRE(success);
+    }
+    {
+        auto target = Process::launch("targets/run_endlessly", false); //don't attach to process
+        auto proc = Process::attach(target->get_pid());
+        proc->resume();
+        auto status = get_process_status(proc->get_pid());
+        auto success = status == 'S' or status == 'R';
+        REQUIRE(success);
+    }
+}
+
+/* launches the process, resumes it, then checks if terminated process throws an error */
+TEST_CASE("process::resume resume already terminated", "[process]")
+{
+    auto proc = Process::launch("targets/end_immediately");
+    proc->resume();
+    proc->wait_on_signal();
+    REQUIRE_THROWS_AS(proc->resume(), error);
 }

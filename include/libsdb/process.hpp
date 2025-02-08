@@ -30,13 +30,29 @@ namespace sdb
     class Process 
     {
         public:
-            /* factory methods that create and attach the sdb::process object */
-            /* static: don't need to create an instance of the class to use them */
-            static std::unique_ptr<Process> launch(std::filesystem::path path);
+            /*********************************************************************
+            * factory methods that create and attach the sdb::process object 
+            * static: don't need to create an instance of the class to use them 
+            *********************************************************************/
+            /*
+            * Launch a process (run a binary) and attach to it
+            * @param path  path to binary or binary file located in $PATH
+            * @param debug turn on debug mode for launched process. Launched process waits for attachment
+            * @return      process object wrapping stopped child process
+            */
+            static std::unique_ptr<Process> launch(std::filesystem::path path, bool debug = true);
+            
+            /*
+            * Attach to  running process
+            * @param pid running process to attach to
+            * @return    process object wrapping stopped process
+            */
             static std::unique_ptr<Process> attach (pid_t pid);
-
+            
+            /**********************************************************************/
             /* make sure that users can't construct a process object without going through static member functions */
-            /* disable default constructor and copy operations */
+            /* disable default constructor, copy operator, and copy-move operator */
+            /*********************************************************************/
             Process() = delete;
             Process(const Process&) = delete;
             Process& operator=(const Process&) = delete;
@@ -54,9 +70,14 @@ namespace sdb
             pid_t pid_ = 0;
             bool terminate_on_end_ = true; /* track termination */
             process_state state_ = process_state::stopped;
+            bool is_attached_ = true;
 
-            /* private constructor for use by static members */
-            Process(pid_t pid, bool terminate_on_end) : pid_(pid), terminate_on_end_(terminate_on_end){}
+            /* Process constructor for use by factory methods
+            * @param pid              process id 
+            * @param terminate_on_end process terminates or not when it's finished. Leave this true for launched process and false if attaching
+            * @param is_attached      whether or not to attach to launched process
+            */
+            Process(pid_t pid, bool terminate_on_end, bool is_attached) : pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached){}
     };
     
 

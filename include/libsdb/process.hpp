@@ -49,13 +49,7 @@ namespace sdb
             */
             static std::unique_ptr<Process> attach (pid_t pid);
             
-            /**********************************************************************/
-            /* make sure that users can't construct a process object without going through static member functions */
-            /* disable default constructor, copy operator, and copy-move operator */
-            /*********************************************************************/
-            Process() = delete;
-            Process(const Process&) = delete;
-            Process& operator=(const Process&) = delete;
+
 
             /* get methods */
             pid_t get_pid() const { return pid_; }
@@ -78,6 +72,15 @@ namespace sdb
             * @param is_attached      whether or not to attach to launched process
             */
             Process(pid_t pid, bool terminate_on_end, bool is_attached) : pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached){}
+
+            /* following the rule of three, since we explicitly defined destructor, we need to have copy move and copy operator disabled */
+            /**********************************************************************/
+            /* make sure that users can't construct a process object without going through static member functions */
+            /* disable default constructor, copy operator, and copy-move operator */
+            /*********************************************************************/
+            Process() = delete;
+            Process(const Process&) = delete;
+            Process& operator=(const Process&) = delete;
     };
     
 

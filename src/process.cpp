@@ -162,7 +162,7 @@ void sdb::Process::resume()
     state_ = process_state::running;
 }
 
-/* destroy the process */
+/* destroy the process object and kill the*/
 sdb::Process::~Process() 
 {
     if (pid_ != 0) 
@@ -182,7 +182,7 @@ sdb::Process::~Process()
         }
 
 
-        /* send it a SIGKILL if we determine that we should destruct it when said program ends*/     
+        /* send it a SIGKILL if target process should be destroyed when the program terminates */     
         if (terminate_on_end_) 
         {
             kill(pid_, SIGKILL);

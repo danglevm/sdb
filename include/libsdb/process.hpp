@@ -76,11 +76,13 @@ namespace sdb
             /* following the rule of three, since we explicitly defined destructor, we need to have copy move and copy operator disabled */
             /**********************************************************************/
             /* make sure that users can't construct a process object without going through static member functions */
-            /* disable default constructor, copy operator, and copy-move operator */
+            /* disable default constructor, copy operator, and copy-move operator, move constructor and move assignment operator */
             /*********************************************************************/
             Process() = delete;
             Process(const Process&) = delete;
             Process& operator=(const Process&) = delete;
+            Process(Process&&) = delete;
+            Process& operator=(Process&&) = delete;
     };
     
 

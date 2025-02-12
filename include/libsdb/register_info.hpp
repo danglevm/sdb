@@ -1,17 +1,22 @@
 #ifndef SDB_REGISTER_INFO_HPP
 #define SDB_REGISTER_INFO_HPP
 
+#include <array>
 #include <cstdint>
 #include <cstddef>
+#include <iterator>
 #include <string_view>
 #include <sys/user.h>
+#include <algorithm>
+#include <libsdb/error.hpp>
 
 namespace sdb {
     
     /* unique register enum value */
     enum class register_id {
         #define DEFINE_REGISTER(name,dwarf_id,size,offset,type,format) name
-        #include <libsdb/detail/registers.inc>
+        //#include <libsdb/detail/registers.inc>
+        #include "registers.inc"
         #undef DEFINE_REGISTER
     };
 
@@ -44,9 +49,40 @@ namespace sdb {
     };
 
     /* info of every register in the system */
-    inline constexpr const register_info g_register_infos[] {
-
+    inline constexpr const register_info g_register_infos[] = {
+        #define DEFINE_REGISTER(name,dwarf_id,size,offset,type,format) \
+            {register_id::name, #name, dwarf_id, size, offset, type, format}
+          //  #include <libsdb/detail/registers.inc>
+          #include "registers.inc"
+        #undef DEFINE_REGISTER
     };
+
+    /* get register metadata */
+    template <typename F>
+    const register_info& get_register_info_by(F f) {
+        auto it = std::find_if(std::begin(g_register_infos), 
+                            std::end(g_register_infos), f);
+        
+        if (it == std::end(g_register_infos)) {
+            error::send("Can't find register info");
+        }
+
+        return *it;
+    }
+
+    /* get register metadata by field */
+    inline const register_info& get_register_info_by_id(register_id id) {
+        return get_register_info_by([id](auto &i) {return i.id == id;});
+    }
+
+    inline const register_info& get_register_info_by_name(std::string_view& name) {
+        return get_register_info_by([name](auto &i) {return i.name == name;});
+    }
+
+    inline const register_info& get_register_info_by_dwarf(std::int32_t dwarf_id) {
+        return get_register_info_by([dwarf_id](auto &i) {return i.dwarf_id == dwarf_id;});
+    }
+
 }
 
 #endif

@@ -9,6 +9,11 @@
 #include <libsdb/register_info.hpp>
 #include <libsdb/types.hpp>
 
+/* 
+*
+*   HANDLING REGISTER VALUES
+*
+*/
 namespace sdb {
     class process;
     /* 
@@ -27,18 +32,19 @@ namespace sdb {
 
             template <typename T>
             T read_by_id_as(register_id id) const {
-
+                return std::get<T>(read(get_register_info_by_id(id)));
             }
 
-            void write_by_id_as(register_id id, value val) const {
-                return write(get_register_info_by_id(id), val);
+            void write_by_id(register_id id, value val) {
+                write(get_register_info_by_id(id), val);
             }
         private:
-            registers(process& proc) : proc_(&proc){}
             friend process;
+            registers(process& proc) : proc_(&proc){}
 
-            user data_;
-            process * proc_;
+
+            user data_; /* stores raw bytes and uses the user struct from sys/user.h */
+            process * proc_; /* responsibe for handling */
 
             /* disable constructors and assignment operators as each process has its own unique set of reigsters */
             registers()=delete;

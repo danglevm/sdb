@@ -10,13 +10,18 @@
 #include <algorithm>
 #include <libsdb/error.hpp>
 
+/* 
+*
+*   STORES REGISTER INFO   
+*
+*/
 namespace sdb {
     
     /* unique register enum value */
     enum class register_id {
         #define DEFINE_REGISTER(name,dwarf_id,size,offset,type,format) name
-        //#include <libsdb/detail/registers.inc>
-        #include "registers.inc"
+        #include <libsdb/detail/registers.inc>
+        //#include "registers.inc"
         #undef DEFINE_REGISTER
     };
 
@@ -39,10 +44,10 @@ namespace sdb {
 
     /* based on sys/user.h */
     struct register_info {
-        register_id id;
+        register_id id; /* name in user struct */
         std::string_view name;
-        std::int32_t dwarf_id;
-        std::size_t size; /* size in bytes */
+        std::int32_t dwarf_id; 
+        std::size_t size; /* size of register in bytes */
         std::size_t offset; /* byte offset into user struct */
         register_type type;
         register_format format;
@@ -51,9 +56,9 @@ namespace sdb {
     /* info of every register in the system */
     inline constexpr const register_info g_register_infos[] = {
         #define DEFINE_REGISTER(name,dwarf_id,size,offset,type,format) \
-            {register_id::name, #name, dwarf_id, size, offset, type, format}
-          //  #include <libsdb/detail/registers.inc>
-          #include "registers.inc"
+            { register_id::name, #name, dwarf_id, size, offset, type, format }
+        #include <libsdb/detail/registers.inc>
+        // #include "registers.inc"
         #undef DEFINE_REGISTER
     };
 

@@ -5,7 +5,7 @@ DEFINE_REGISTER macro defined"
 
 #define GPR_OFFSET(reg) (offsetof(user, regs) + offsetof(user_regs_struct, reg))
 #define FPR_OFFSET(reg) (offsetof(user, i387) + offsetof(user_fpregs_struct, reg))
-#define FPR_SIZE(size) (sizeof(user_fpregs_struct::reg))
+#define FPR_SIZE(reg) (sizeof(user_fpregs_struct::reg))
 #define DR_OFFSET(number) (offsetof(user, u_debugreg) + (number * 8))
 
 
@@ -117,8 +117,8 @@ DEFINE_FPR(fsw, 66, swd),
 DEFINE_FPR(ftw, -1, ftw),
 DEFINE_FPR(fop, -1, fop),
 DEFINE_FPR(frip, -1, rip),
-DEFINE_FPR(mxcsr, 64, mxcsr)
-DEFINE_FPR(mxcsrmask, -1, mxcr_mask)
+DEFINE_FPR(mxcsr, 64, mxcsr),
+DEFINE_FPR(mxcsrmask, -1, mxcr_mask),
 
 DEFINE_FP_ST(0), DEFINE_FP_ST(1), DEFINE_FP_ST(2), DEFINE_FP_ST(3),
 DEFINE_FP_ST(4), DEFINE_FP_ST(5), DEFINE_FP_ST(6), DEFINE_FP_ST(7),

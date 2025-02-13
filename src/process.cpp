@@ -190,3 +190,34 @@ sdb::Process::~Process()
         }
     }
 }
+
+void sdb::Process::read_all_registers() {
+    /* read user_regs_struct into user struct data_ from the process */
+    if (ptrace(PTRACE_GETREGS, pid_, nullptr, &get_registers.data_.regs) < 0) {
+        error::send("Cannot read general purpose registers");
+    } 
+    /* read user_fpregs_struct into user struct data_ from the process */
+    if (ptrace(PTRACE_GETFPREGS, pid_, nullptr, &get_registers.data_.i387) < 0) {
+        error::send("Cannot read floating point general purpose registers");
+    }
+
+    for (int i = 0; i < 8; ++i) {
+        //read debug registers
+        auto id = static_cast<int>(register_info::dr0) + i; //retrieve ith register from the 0th debug register
+        auto info = sdb::get_register_info_by_id(static_cast<register_id> (id));
+
+        errno = 0;
+        std::int64_t data = ptrace(PTRACE_PEEKUSER, pid_, info.offset, nullptr);
+        if (errno != 0) {
+            error::send_errno("Cannot read debug registers");
+        }
+
+        this->get_registers().data_.u_debugreg[i] = data;
+    }
+}
+
+void sdb::Process::write_user_area(std::size_t offset, std::uint64_t data) {
+    if (ptrace(PTRACE_PEEKUSER, pid_, offset, data) < 0) {
+        error::send("Cannot write to user area");
+    }
+}

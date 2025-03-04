@@ -1,15 +1,18 @@
 #ifndef SDB_PROCESS_HPP
 #define SDB_PROCESS_HPP
 
-#include "registers.hpp"
+#include <libsdb/registers.hpp>
 #include <filesystem>
 #include <memory>
 #include <sys/types.h>
-#include <libsdb/registers.hpp>
+#include <sys/user.h>
+#include <optional>
+
 
 /* organize my code inside to avoid conflicts, in this case code for sdb */
 namespace sdb 
 {
+
     /* all process states */
     enum class process_state 
     {
@@ -39,10 +42,13 @@ namespace sdb
             /*
             * Launch a process (run a binary) and attach to it
             * @param path  path to binary or binary file located in $PATH
+            * @param stdout_replacement_fd file descriptor used for stdout
             * @param debug turn on debug mode for launched process. Launched process waits for attachment
             * @return      process object wrapping stopped child process
             */
-            static std::unique_ptr<Process> launch(std::filesystem::path path, bool debug = true);
+            static std::unique_ptr<Process> launch(std::filesystem::path path, 
+                                                    bool debug = true,
+                                                    std::optional<int> stdout_replacement_fd = std::nullopt); /* default option is nullptr */
             
             /*
             * Attach to  running process
@@ -64,8 +70,11 @@ namespace sdb
 
             /* registers handling function */
             void write_user_area(std::size_t offset, std::uint64_t data);
-            registers& get_registers() { return *registers_;};
-            const registers& get_registers() const { return *registers_;};
+            registers& get_registers() { return *registers_;}
+            const registers& get_registers() const { return *registers_;}
+
+            void write_fprs(const user_fpregs_struct& fprs);
+            void write_gprs(const user_regs_struct& gprs);
 
         private:
             pid_t pid_ = 0;
@@ -79,7 +88,8 @@ namespace sdb
             * @param is_attached      whether or not to attach to launched process
             */
             Process(pid_t pid, bool terminate_on_end, bool is_attached) : 
-                pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached), registers_(new sdb::registers(*this)){}
+                pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached), registers_(new registers(*this))
+            {}
 
             /* following the rule of three, since we explicitly defined destructor, we need to have copy move and copy operator disabled */
             /**********************************************************************/

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project("sdb" LANGUAGES CXX) # enable c++ support
+project("sdb" LANGUAGES CXX ASM) # enable c++ support
 
 # these has to be before add_subdirectory because they need to be found before the add_subdirectory usage
 find_package(PkgConfig MODULE REQUIRED) # find the PkgConfig module, then use pkg_check_modules function to locate readline module

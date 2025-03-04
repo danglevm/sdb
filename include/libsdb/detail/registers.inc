@@ -16,19 +16,19 @@ DEFINE_REGISTER macro defined"
 
 #define DEFINE_GPR_32(name, super)\
     DEFINE_REGISTER(name, -1, 4, GPR_OFFSET(super), \
-                    register_type::gpr, register_format::uint)
+                    register_type::sub_gpr, register_format::uint)
 
 #define DEFINE_GPR_16(name, super)\
     DEFINE_REGISTER(name, -1, 2, GPR_OFFSET(super), \
-                    register_type::gpr, register_format::uint)
+                    register_type::sub_gpr, register_format::uint)
 
 #define DEFINE_GPR_8H(name, super)\
     DEFINE_REGISTER(name, -1, 1, GPR_OFFSET(super) + 1, \
-                    register_type::gpr, register_format::uint)
+                    register_type::sub_gpr, register_format::uint)
 
 #define DEFINE_GPR_8L(name, super)\
     DEFINE_REGISTER(name, -1, 1, GPR_OFFSET(super), \
-                    register_type::gpr, register_format::uint)
+                    register_type::sub_gpr, register_format::uint)
 
 #define DEFINE_FPR(name,dwarf_id,user_name)\
     DEFINE_REGISTER(name, dwarf_id, FPR_SIZE(user_name), FPR_OFFSET(user_name), \
@@ -46,7 +46,7 @@ DEFINE_REGISTER macro defined"
 
 #define DEFINE_FP_XMM(number)\
     DEFINE_REGISTER(xmm ## number, (17 + number), 16, \
-                    (FPR_OFFSET(st_space) + number*16), register_type::fpr, \
+                    (FPR_OFFSET(xmm_space) + number*16), register_type::fpr, \
                     register_format::vector)
 
 #define DEFINE_DR(number) \

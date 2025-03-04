@@ -3,9 +3,12 @@
 #include <signal.h>
 #include <unistd.h>
 #include <libsdb/process.hpp>
+#include <libsdb/pipe.hpp>
+#include <libsdb/bits.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <libsdb/error.hpp>
 #include <fstream>
+#include <iostream>
 
 using namespace sdb;
 namespace {
@@ -94,4 +97,37 @@ TEST_CASE("process::resume resume already terminated", "[process]")
     proc->resume();
     proc->wait_on_signal();
     REQUIRE_THROWS_AS(proc->resume(), error);
+}
+
+/*************************************/
+/** REGISTERS READ AND WRITE TESTS */
+/*************************************/
+TEST_CASE("Write register rsi", "[register]") {
+    bool close_on_exec = false;
+    /* set up pipe if it doesn't close on execute */
+    sdb::pipe channel(close_on_exec);
+
+    /* launch regs_write and resume it until it hits the first trap */
+    auto proc = Process::launch(
+        "targets/reg_write", true, channel.get_write()
+    );
+    /* close the write end from the parent's POV */
+    channel.close_write();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    /* write a value to rsi */
+    auto& regs = proc->get_registers();
+    regs.write_by_id(register_id::rsi, 0xcafecafe);
+
+    /* go until program ends */
+    proc->resume();
+    proc->wait_on_signal();
+
+    /* check if output matches value */
+    auto output = channel.read();
+    std::cout << to_string_view(output);
+    REQUIRE(to_string_view(output) == "0xcafecafe");
+
 }

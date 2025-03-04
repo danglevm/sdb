@@ -13,6 +13,8 @@
 #include <readline/history.h>
 #include <libsdb/process.hpp>
 #include <libsdb/error.hpp>
+#include <libsdb/register_info.hpp>
+#include <libsdb/registers.hpp>
 
 
 /**/
@@ -116,11 +118,24 @@ namespace
         auto args = split(line, ' ');
         auto command = args[0];
 
+        std::uint64_t data_64 {0};
+        std::uint32_t data_32 {0};
+        std::uint16_t data_16 {0};
+        std::uint8_t data_8 {0};
+
+        double test = 3.14;
+
+        
+
         /* execute the command based on input */
         if (is_prefix(command, "continue")) 
         {
+            /* raw bytes we are reading from so need to convert it to 64 bytes */
+            // data = process->get_registers().read_by_id_as<std::uint64_t>(sdb::register_id::rax);
+            // process->get_registers().write_by_id(sdb::register_id::rax, data_8);
             process->resume();
             auto reason = process->wait_on_signal();
+
             print_stop_reason(*process, reason);
         } 
         else {

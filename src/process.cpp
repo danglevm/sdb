@@ -1,7 +1,9 @@
 #include <cstdlib>
 #include <memory>
+#include <optional>
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/user.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -10,6 +12,7 @@
 #include <libsdb/error.hpp>
 #include <libsdb/pipe.hpp>
 #include <cstring>
+#include <iostream>
 
 namespace {
     /* writes the representation of errno to a pipe with given prefix. Send this message and exit with error code */
@@ -56,6 +59,11 @@ sdb::stop_reason sdb::Process::wait_on_signal()
     }
     stop_reason reason(wait_status);
     state_ = reason.reason;
+
+    /* we have attached to the process and stop it, read all the GPR and FPR into the registers_ variable */
+    if (is_attached_ and state_ == process_state::stopped) {
+        read_all_registers();
+    }
     return reason;
 }
 
@@ -65,7 +73,9 @@ sdb::stop_reason sdb::Process::wait_on_signal()
 /* launch and attach can call C++ private constructor */
 /* handles fed filepath */
 std::unique_ptr<sdb::Process>
-sdb::Process::launch(std::filesystem::path path, bool debug) 
+sdb::Process::launch(std::filesystem::path path, 
+                    bool debug,
+                    std::optional<int> stdout_replacement_fd) 
 {
     pid_t pid;
     /* we need to create pipes before forking. pipes closed when they are not in use */
@@ -84,6 +94,16 @@ sdb::Process::launch(std::filesystem::path path, bool debug)
     {   
         /* child process won't be using read end only write end */
         channel.close_read();
+
+        if (stdout_replacement_fd) {
+            /* replace stdout fileno with new replacement fileno */
+            /* dup2 syscall closes the second fd, duplicates the first fd to the second */
+            /* could be a file or a pipe this points to */
+            if (dup2(*stdout_replacement_fd, STDOUT_FILENO) < 0) {
+                exit_with_perror(channel, "stdout replacement failed");
+            }
+        }
+
         if (debug and ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) 
         {
             /* error: tracing failed */
@@ -135,7 +155,7 @@ sdb::Process::attach(pid_t pid)
     {
         /* child process */
         /* error: invalid PID */
-        error::send("Invalid PID");
+        error::send("Error: invalid PID");
     }
 
     if (ptrace(PTRACE_ATTACH, pid, nullptr, nullptr) < 0)
@@ -162,7 +182,7 @@ void sdb::Process::resume()
     state_ = process_state::running;
 }
 
-/* destroy the process object and kill the*/
+/* destroy the process object and kill them */
 sdb::Process::~Process() 
 {
     if (pid_ != 0) 
@@ -181,7 +201,6 @@ sdb::Process::~Process()
             kill(pid_, SIGCONT);
         }
 
-
         /* send it a SIGKILL if target process should be destroyed when the program terminates */     
         if (terminate_on_end_) 
         {
@@ -193,31 +212,54 @@ sdb::Process::~Process()
 
 void sdb::Process::read_all_registers() {
     /* read user_regs_struct into user struct data_ from the process */
-    if (ptrace(PTRACE_GETREGS, pid_, nullptr, &get_registers.data_.regs) < 0) {
-        error::send("Cannot read general purpose registers");
+    if (ptrace(PTRACE_GETREGS, pid_, nullptr, &get_registers().data_.regs) < 0) {
+        error::send("Error: cannot read general purpose registers");
     } 
     /* read user_fpregs_struct into user struct data_ from the process */
-    if (ptrace(PTRACE_GETFPREGS, pid_, nullptr, &get_registers.data_.i387) < 0) {
-        error::send("Cannot read floating point general purpose registers");
+    if (ptrace(PTRACE_GETFPREGS, pid_, nullptr, &get_registers().data_.i387) < 0) {
+        error::send("Error: cannot read floating point general purpose registers");
     }
 
     for (int i = 0; i < 8; ++i) {
         //read debug registers
-        auto id = static_cast<int>(register_info::dr0) + i; //retrieve ith register from the 0th debug register
+        auto id = static_cast<int>(register_id::dr0) + i; //retrieve ith register from the 0th debug register
+
+        /* calling register_info_by_id using our cast */
         auto info = sdb::get_register_info_by_id(static_cast<register_id> (id));
 
         errno = 0;
+        /* sets errno to signal errors rather than using return value */
         std::int64_t data = ptrace(PTRACE_PEEKUSER, pid_, info.offset, nullptr);
         if (errno != 0) {
-            error::send_errno("Cannot read debug registers");
+            error::send_errno("Error: cannot read debug registers");
         }
 
-        this->get_registers().data_.u_debugreg[i] = data;
+        /* write the retrieved data into the corret place in registers_ member */
+        get_registers().data_.u_debugreg[i] = data;
     }
 }
 
+
+/*
+* HANDLES WRITING REGISTERS
+*/
 void sdb::Process::write_user_area(std::size_t offset, std::uint64_t data) {
-    if (ptrace(PTRACE_PEEKUSER, pid_, offset, data) < 0) {
-        error::send("Cannot write to user area");
+    /* write the given data to the user area at the given offset */
+    if (ptrace(PTRACE_POKEUSER, pid_, offset, data) < 0) {
+        error::send("Error: cannot write to user area");
+    }
+}
+
+/* write to all fpregs */
+void sdb::Process::write_fprs(const user_fpregs_struct& fprs) {
+    if (ptrace(PTRACE_SETFPREGS, pid_, nullptr, &fprs) < 0) {
+        error::send_errno("Could not write floating point registers");
+    }
+}
+
+/* write to all gpregs */
+void sdb::Process::write_gprs(const user_regs_struct& gprs) {
+    if (ptrace(PTRACE_SETREGS, pid_, nullptr, &gprs) < 0) {
+        error::send_errno("Could not write general purpose registers");
     }
 }

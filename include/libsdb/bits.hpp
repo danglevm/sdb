@@ -3,6 +3,9 @@
 
 #include <cstddef>
 #include <cstring>
+#include <string>
+#include <vector>
+#include <string_view>
 
 namespace sdb {
 
@@ -12,6 +15,15 @@ namespace sdb {
         To ret;
         std::memcpy(&ret, bytes, sizeof(To)); //safe memory copy alignment
         return ret;
+    }
+
+    inline std::string_view to_string_view (const std::byte * data, std::size_t size) {
+        return { reinterpret_cast<const char *>(data), size};
+    }
+
+    /*  std::vector<std::byte> */
+    inline std::string_view to_string_view (const std::vector<std::byte>& data) {
+        return to_string_view(data.data(), data.size());
     }
 
     /* for read and write-only operations */

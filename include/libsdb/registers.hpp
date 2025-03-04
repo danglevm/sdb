@@ -1,7 +1,7 @@
 #ifndef SDB_REGISTERS_HPP
 #define SDB_REGISTERS_HPP
 
-#include "register_info.hpp"
+
 #include <atomic>
 #include <cstdint>
 #include <variant>
@@ -9,13 +9,14 @@
 #include <libsdb/register_info.hpp>
 #include <libsdb/types.hpp>
 
+
 /* 
 *
 *   HANDLING REGISTER VALUES
 *
 */
 namespace sdb {
-    class process;
+    class Process;
     /* 
     * Process handles reading, from registers then debugger handles writing
      */
@@ -39,12 +40,12 @@ namespace sdb {
                 write(get_register_info_by_id(id), val);
             }
         private:
-            friend process;
-            registers(process& proc) : proc_(&proc){}
+            friend Process;
+            registers(Process& proc) : proc_(&proc){}
 
 
             user data_; /* stores raw bytes and uses the user struct from sys/user.h */
-            process * proc_; /* responsibe for handling */
+            Process * proc_; /* responsibe for handling */
 
             /* disable constructors and assignment operators as each process has its own unique set of reigsters */
             registers()=delete;

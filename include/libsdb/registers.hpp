@@ -22,6 +22,13 @@ namespace sdb {
      */
     class registers {
         public:
+            /* disable constructors and assignment operators as each process has its own unique set of reigsters */
+            registers() = delete;
+            registers(const registers&) = delete;
+            registers& operator = (const registers&) = delete;
+            registers(registers&&) = delete;
+            registers& operator=(registers&&) = delete;
+
             //using value = /**/;
             using value = std::variant<std::int8_t, std::int16_t, std::int32_t, std::int64_t,   
                                         std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t, 
@@ -44,15 +51,9 @@ namespace sdb {
             registers(Process& proc) : proc_(&proc){}
 
 
-            user data_; /* stores raw bytes and uses the user struct from sys/user.h */
+            user data_; /* stores raw bytes and uses the user struct from sys/user.h - register values */
             Process * proc_; /* responsibe for handling */
 
-            /* disable constructors and assignment operators as each process has its own unique set of reigsters */
-            registers()=delete;
-            registers(const registers&)=delete;
-            registers& operator=(const registers&)=delete;
-            registers(registers&&)=delete;
-            registers& operator=(registers&&)=delete;
     };
 }
 

@@ -88,7 +88,8 @@ namespace sdb
             * @param is_attached      whether or not to attach to launched process
             */
             Process(pid_t pid, bool terminate_on_end, bool is_attached) : 
-                pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached), registers_(new registers(*this))
+                pid_(pid), terminate_on_end_(terminate_on_end), 
+                is_attached_(is_attached), registers_(new registers(*this))
             {}
 
             /* following the rule of three, since we explicitly defined destructor, we need to have copy move and copy operator disabled */

@@ -75,11 +75,15 @@ namespace sdb {
         return *it;
     }
 
-    /* get register metadata by field */
+    /* get register metadata by fields */
+    /* inline enables multiple function definitions to exist */
+
+    /* @param register ID */
     inline const register_info& get_register_info_by_id(register_id id) {
         return get_register_info_by([id](auto &i) {return i.id == id;});
     }
 
+    /* @param */
     inline const register_info& get_register_info_by_name(std::string_view& name) {
         return get_register_info_by([name](auto &i) {return i.name == name;});
     }

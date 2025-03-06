@@ -42,6 +42,7 @@ namespace {
 sdb::registers::value sdb::registers::read(const register_info& info) const {
     /* retrieve registers' raw bytes and reinterpret them as std::bytes */
     auto bytes = sdb::as_bytes(data_); 
+    //auto offset = info.offset;
 
     if (info.format == sdb::register_format::uint) {
 
@@ -65,6 +66,10 @@ sdb::registers::value sdb::registers::read(const register_info& info) const {
     }
 }
 
+/*
+* @param info register_info struct to write val into
+* @param val  value to write into register_info struct
+*/
 void sdb::registers::write(const register_info& info, value val) {
     /* retrieve registers' raw bytes and reinterpret them as std::bytes */
     auto bytes = sdb::as_bytes(data_); 
@@ -75,7 +80,9 @@ void sdb::registers::write(const register_info& info, value val) {
         if (sizeof(v) <= info.size) {
             auto wide = widen(info, v);
             auto val_bytes = as_bytes(wide); //std::byte
-            std::copy(val_bytes, val_bytes + sizeof(v), bytes + info.offset);
+            /* allow writing smaller-sized values into registers safely */
+            /* allows copying smaller-sized registers and put it into the offset struct */
+            std::copy(val_bytes, val_bytes + info.size, bytes + info.offset);
         } else {
             /* throws an exception */
             std::cerr << "sdb::register::write called with \"mismatched register sizes and values\"";

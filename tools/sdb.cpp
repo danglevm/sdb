@@ -65,6 +65,46 @@ namespace
 
     }
 
+    void print_help(const std::vector<std::string> & args)  {
+        if (args.size() == 1) {
+            std::cerr << R"(Available commands:
+            continue    - Resume the process
+            register    - Commands for operating on registers
+            )";
+        /* handles registers */
+        } else if (is_prefix(args[1], "register")) {
+            std::cerr << R"(Available commands:
+            read
+            read <register>
+            read all
+            write <register> <value>
+            )";
+        } else {
+            std::cerr << "No help available on that\n";
+        }
+    }
+
+    void handle_register_command(
+        sdb::Process &process,
+        const std::vector<std::string>& args) {
+            if (args.size() < 2){ 
+                print_help({"help", "register"});
+                return;
+            }
+
+            if (is_prefix(args[1], "read")) {
+                handle_register_read(process, args);
+            }
+            else if (if_prefix(args[1], "write")) {
+                handle_register_write(process, args);
+            }
+            else {
+                print_help({"help", "register"});
+            }
+        }
+
+    
+
     // void resume(pid_t pid)
     // {   
     //     /* get the inferior process to continue running */
@@ -118,12 +158,12 @@ namespace
         auto args = split(line, ' ');
         auto command = args[0];
 
-        std::uint64_t data_64 {0};
-        std::uint32_t data_32 {0};
-        std::uint16_t data_16 {0};
-        std::uint8_t data_8 {0};
+        // std::uint64_t data_64 {0};
+        // std::uint32_t data_32 {0};
+        // std::uint16_t data_16 {0};
+        // std::uint8_t data_8 {0};
 
-        double test = 3.14;
+        // double test = 3.14;
 
         
 
@@ -141,7 +181,9 @@ namespace
         else if (is_prefix(command, "help")) {
             print_help(args);
         }
-
+        else if (is_prefix(command, "register")) {
+            handle_register_command(*process, arg);
+        }
         else {
             std::cerr << "Unknown command\n";
         }

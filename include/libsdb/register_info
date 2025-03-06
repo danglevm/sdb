@@ -50074,7 +50074,7 @@ rax
 # 86 "detail/registers.inc" 3 4
 )
 # 86 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::edx, "edx", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::edx, "edx", -1, 4, (
 # 86 "detail/registers.inc" 3 4
                         __builtin_offsetof (
 # 86 "detail/registers.inc"
@@ -50098,7 +50098,7 @@ rax
 # 86 "detail/registers.inc" 3 4
                         )
 # 86 "detail/registers.inc"
-                        ), register_type::gpr, register_format::uint },
+                        ), register_type::sub_gpr, register_format::uint },
 { register_id::ecx, "ecx", -1, 4, (
 # 87 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50123,7 +50123,7 @@ rcx
 # 87 "detail/registers.inc" 3 4
 )
 # 87 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::ebx, "ebx", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::ebx, "ebx", -1, 4, (
 # 87 "detail/registers.inc" 3 4
                         __builtin_offsetof (
 # 87 "detail/registers.inc"
@@ -50147,7 +50147,7 @@ rcx
 # 87 "detail/registers.inc" 3 4
                         )
 # 87 "detail/registers.inc"
-                        ), register_type::gpr, register_format::uint },
+                        ), register_type::sub_gpr, register_format::uint },
 { register_id::esi, "esi", -1, 4, (
 # 88 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50172,7 +50172,7 @@ rsi
 # 88 "detail/registers.inc" 3 4
 )
 # 88 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::edi, "edi", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::edi, "edi", -1, 4, (
 # 88 "detail/registers.inc" 3 4
                         __builtin_offsetof (
 # 88 "detail/registers.inc"
@@ -50196,7 +50196,7 @@ rsi
 # 88 "detail/registers.inc" 3 4
                         )
 # 88 "detail/registers.inc"
-                        ), register_type::gpr, register_format::uint },
+                        ), register_type::sub_gpr, register_format::uint },
 
 { register_id::ebp, "ebp", -1, 4, (
 # 90 "detail/registers.inc" 3 4
@@ -50222,7 +50222,7 @@ rbp
 # 90 "detail/registers.inc" 3 4
 )
 # 90 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::esp, "esp", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::esp, "esp", -1, 4, (
 # 90 "detail/registers.inc" 3 4
                         __builtin_offsetof (
 # 90 "detail/registers.inc"
@@ -50246,7 +50246,7 @@ rbp
 # 90 "detail/registers.inc" 3 4
                         )
 # 90 "detail/registers.inc"
-                        ), register_type::gpr, register_format::uint },
+                        ), register_type::sub_gpr, register_format::uint },
 { register_id::r8d, "r8d", -1, 4, (
 # 91 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50271,7 +50271,7 @@ r8
 # 91 "detail/registers.inc" 3 4
 )
 # 91 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r9d, "r9d", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r9d, "r9d", -1, 4, (
 # 91 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 91 "detail/registers.inc"
@@ -50295,7 +50295,7 @@ r8
 # 91 "detail/registers.inc" 3 4
                        )
 # 91 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::r10d, "r10d", -1, 4, (
 # 92 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50320,7 +50320,7 @@ r10
 # 92 "detail/registers.inc" 3 4
 )
 # 92 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r11d, "r11d", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r11d, "r11d", -1, 4, (
 # 92 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 92 "detail/registers.inc"
@@ -50344,7 +50344,7 @@ r10
 # 92 "detail/registers.inc" 3 4
                          )
 # 92 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::r12d, "r12d", -1, 4, (
 # 93 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50369,7 +50369,7 @@ r12
 # 93 "detail/registers.inc" 3 4
 )
 # 93 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r13d, "r13d", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r13d, "r13d", -1, 4, (
 # 93 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 93 "detail/registers.inc"
@@ -50393,7 +50393,7 @@ r12
 # 93 "detail/registers.inc" 3 4
                          )
 # 93 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::r14d, "r14d", -1, 4, (
 # 94 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50418,7 +50418,7 @@ r14
 # 94 "detail/registers.inc" 3 4
 )
 # 94 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r15d, "r15d", -1, 4, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r15d, "r15d", -1, 4, (
 # 94 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 94 "detail/registers.inc"
@@ -50442,7 +50442,7 @@ r14
 # 94 "detail/registers.inc" 3 4
                          )
 # 94 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::ax, "ax", -1, 2, (
 # 95 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50467,7 +50467,7 @@ rax
 # 95 "detail/registers.inc" 3 4
 )
 # 95 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::dx, "dx", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::dx, "dx", -1, 2, (
 # 95 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 95 "detail/registers.inc"
@@ -50491,7 +50491,7 @@ rax
 # 95 "detail/registers.inc" 3 4
                        )
 # 95 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::cx, "cx", -1, 2, (
 # 96 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50516,7 +50516,7 @@ rcx
 # 96 "detail/registers.inc" 3 4
 )
 # 96 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::bx, "bx", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::bx, "bx", -1, 2, (
 # 96 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 96 "detail/registers.inc"
@@ -50540,7 +50540,7 @@ rcx
 # 96 "detail/registers.inc" 3 4
                        )
 # 96 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::si, "si", -1, 2, (
 # 97 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50565,7 +50565,7 @@ rsi
 # 97 "detail/registers.inc" 3 4
 )
 # 97 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::di, "di", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::di, "di", -1, 2, (
 # 97 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 97 "detail/registers.inc"
@@ -50589,7 +50589,7 @@ rsi
 # 97 "detail/registers.inc" 3 4
                        )
 # 97 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::bp, "bp", -1, 2, (
 # 98 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50614,7 +50614,7 @@ rbp
 # 98 "detail/registers.inc" 3 4
 )
 # 98 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::sp, "sp", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::sp, "sp", -1, 2, (
 # 98 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 98 "detail/registers.inc"
@@ -50638,7 +50638,7 @@ rbp
 # 98 "detail/registers.inc" 3 4
                        )
 # 98 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::r8w, "r8w", -1, 2, (
 # 99 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50663,7 +50663,7 @@ r8
 # 99 "detail/registers.inc" 3 4
 )
 # 99 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r9w, "r9w", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r9w, "r9w", -1, 2, (
 # 99 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 99 "detail/registers.inc"
@@ -50687,7 +50687,7 @@ r8
 # 99 "detail/registers.inc" 3 4
                        )
 # 99 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::r10w, "r10w", -1, 2, (
 # 100 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50712,7 +50712,7 @@ r10
 # 100 "detail/registers.inc" 3 4
 )
 # 100 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r11w, "r11w", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r11w, "r11w", -1, 2, (
 # 100 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 100 "detail/registers.inc"
@@ -50736,7 +50736,7 @@ r10
 # 100 "detail/registers.inc" 3 4
                          )
 # 100 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::r12w, "r12w", -1, 2, (
 # 101 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50761,7 +50761,7 @@ r12
 # 101 "detail/registers.inc" 3 4
 )
 # 101 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r13w, "r13w", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r13w, "r13w", -1, 2, (
 # 101 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 101 "detail/registers.inc"
@@ -50785,7 +50785,7 @@ r12
 # 101 "detail/registers.inc" 3 4
                          )
 # 101 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::r14w, "r14w", -1, 2, (
 # 102 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50810,7 +50810,7 @@ r14
 # 102 "detail/registers.inc" 3 4
 )
 # 102 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r15w, "r15w", -1, 2, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r15w, "r15w", -1, 2, (
 # 102 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 102 "detail/registers.inc"
@@ -50834,7 +50834,7 @@ r14
 # 102 "detail/registers.inc" 3 4
                          )
 # 102 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::ah, "ah", -1, 1, (
 # 103 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50859,7 +50859,7 @@ rax
 # 103 "detail/registers.inc" 3 4
 )
 # 103 "detail/registers.inc"
-) + 1, register_type::gpr, register_format::uint }, { register_id::dh, "dh", -1, 1, (
+) + 1, register_type::sub_gpr, register_format::uint }, { register_id::dh, "dh", -1, 1, (
 # 103 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 103 "detail/registers.inc"
@@ -50883,7 +50883,7 @@ rax
 # 103 "detail/registers.inc" 3 4
                        )
 # 103 "detail/registers.inc"
-                       ) + 1, register_type::gpr, register_format::uint },
+                       ) + 1, register_type::sub_gpr, register_format::uint },
 { register_id::ch, "ch", -1, 1, (
 # 104 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50908,7 +50908,7 @@ rcx
 # 104 "detail/registers.inc" 3 4
 )
 # 104 "detail/registers.inc"
-) + 1, register_type::gpr, register_format::uint }, { register_id::bh, "bh", -1, 1, (
+) + 1, register_type::sub_gpr, register_format::uint }, { register_id::bh, "bh", -1, 1, (
 # 104 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 104 "detail/registers.inc"
@@ -50932,7 +50932,7 @@ rcx
 # 104 "detail/registers.inc" 3 4
                        )
 # 104 "detail/registers.inc"
-                       ) + 1, register_type::gpr, register_format::uint },
+                       ) + 1, register_type::sub_gpr, register_format::uint },
 { register_id::al, "al", -1, 1, (
 # 105 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -50957,7 +50957,7 @@ rax
 # 105 "detail/registers.inc" 3 4
 )
 # 105 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::dl, "dl", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::dl, "dl", -1, 1, (
 # 105 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 105 "detail/registers.inc"
@@ -50981,7 +50981,7 @@ rax
 # 105 "detail/registers.inc" 3 4
                        )
 # 105 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::cl, "cl", -1, 1, (
 # 106 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51006,7 +51006,7 @@ rcx
 # 106 "detail/registers.inc" 3 4
 )
 # 106 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::bl, "bl", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::bl, "bl", -1, 1, (
 # 106 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 106 "detail/registers.inc"
@@ -51030,7 +51030,7 @@ rcx
 # 106 "detail/registers.inc" 3 4
                        )
 # 106 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::sil, "sil", -1, 1, (
 # 107 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51055,7 +51055,7 @@ rsi
 # 107 "detail/registers.inc" 3 4
 )
 # 107 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::dil, "dil", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::dil, "dil", -1, 1, (
 # 107 "detail/registers.inc" 3 4
                         __builtin_offsetof (
 # 107 "detail/registers.inc"
@@ -51079,7 +51079,7 @@ rsi
 # 107 "detail/registers.inc" 3 4
                         )
 # 107 "detail/registers.inc"
-                        ), register_type::gpr, register_format::uint },
+                        ), register_type::sub_gpr, register_format::uint },
 { register_id::bpl, "bpl", -1, 1, (
 # 108 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51104,7 +51104,7 @@ rbp
 # 108 "detail/registers.inc" 3 4
 )
 # 108 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::spl, "spl", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::spl, "spl", -1, 1, (
 # 108 "detail/registers.inc" 3 4
                         __builtin_offsetof (
 # 108 "detail/registers.inc"
@@ -51128,7 +51128,7 @@ rbp
 # 108 "detail/registers.inc" 3 4
                         )
 # 108 "detail/registers.inc"
-                        ), register_type::gpr, register_format::uint },
+                        ), register_type::sub_gpr, register_format::uint },
 { register_id::r8b, "r8b", -1, 1, (
 # 109 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51153,7 +51153,7 @@ r8
 # 109 "detail/registers.inc" 3 4
 )
 # 109 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r9b, "r9b", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r9b, "r9b", -1, 1, (
 # 109 "detail/registers.inc" 3 4
                        __builtin_offsetof (
 # 109 "detail/registers.inc"
@@ -51177,7 +51177,7 @@ r8
 # 109 "detail/registers.inc" 3 4
                        )
 # 109 "detail/registers.inc"
-                       ), register_type::gpr, register_format::uint },
+                       ), register_type::sub_gpr, register_format::uint },
 { register_id::r10b, "r10b", -1, 1, (
 # 110 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51202,7 +51202,7 @@ r10
 # 110 "detail/registers.inc" 3 4
 )
 # 110 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r11b, "r11b", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r11b, "r11b", -1, 1, (
 # 110 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 110 "detail/registers.inc"
@@ -51226,7 +51226,7 @@ r10
 # 110 "detail/registers.inc" 3 4
                          )
 # 110 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::r12b, "r12b", -1, 1, (
 # 111 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51251,7 +51251,7 @@ r12
 # 111 "detail/registers.inc" 3 4
 )
 # 111 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r13b, "r13b", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r13b, "r13b", -1, 1, (
 # 111 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 111 "detail/registers.inc"
@@ -51275,7 +51275,7 @@ r12
 # 111 "detail/registers.inc" 3 4
                          )
 # 111 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 { register_id::r14b, "r14b", -1, 1, (
 # 112 "detail/registers.inc" 3 4
 __builtin_offsetof (
@@ -51300,7 +51300,7 @@ r14
 # 112 "detail/registers.inc" 3 4
 )
 # 112 "detail/registers.inc"
-), register_type::gpr, register_format::uint }, { register_id::r15b, "r15b", -1, 1, (
+), register_type::sub_gpr, register_format::uint }, { register_id::r15b, "r15b", -1, 1, (
 # 112 "detail/registers.inc" 3 4
                          __builtin_offsetof (
 # 112 "detail/registers.inc"
@@ -51324,7 +51324,7 @@ r14
 # 112 "detail/registers.inc" 3 4
                          )
 # 112 "detail/registers.inc"
-                         ), register_type::gpr, register_format::uint },
+                         ), register_type::sub_gpr, register_format::uint },
 
 
 { register_id::fcw, "fcw", 65, (sizeof(user_fpregs_struct::cwd)), (
@@ -51698,7 +51698,7 @@ st_space
 # 124 "detail/registers.inc"
                                                   ) + 7*16), register_type::fpr, register_format::long_double },
 
-{ register_id::mm0, "mm0", (41 + 0), 16, ((
+{ register_id::mm0, "mm0", (41 + 0), 8, ((
 # 126 "detail/registers.inc" 3 4
 __builtin_offsetof (
 # 126 "detail/registers.inc"
@@ -51722,7 +51722,7 @@ st_space
 # 126 "detail/registers.inc" 3 4
 )
 # 126 "detail/registers.inc"
-) + 0*16), register_type::fpr, register_format::vector }, { register_id::mm1, "mm1", (41 + 1), 16, ((
+) + 0*16), register_type::fpr, register_format::vector }, { register_id::mm1, "mm1", (41 + 1), 8, ((
 # 126 "detail/registers.inc" 3 4
                 __builtin_offsetof (
 # 126 "detail/registers.inc"
@@ -51746,7 +51746,7 @@ st_space
 # 126 "detail/registers.inc" 3 4
                 )
 # 126 "detail/registers.inc"
-                ) + 1*16), register_type::fpr, register_format::vector }, { register_id::mm2, "mm2", (41 + 2), 16, ((
+                ) + 1*16), register_type::fpr, register_format::vector }, { register_id::mm2, "mm2", (41 + 2), 8, ((
 # 126 "detail/registers.inc" 3 4
                                  __builtin_offsetof (
 # 126 "detail/registers.inc"
@@ -51770,7 +51770,7 @@ st_space
 # 126 "detail/registers.inc" 3 4
                                  )
 # 126 "detail/registers.inc"
-                                 ) + 2*16), register_type::fpr, register_format::vector }, { register_id::mm3, "mm3", (41 + 3), 16, ((
+                                 ) + 2*16), register_type::fpr, register_format::vector }, { register_id::mm3, "mm3", (41 + 3), 8, ((
 # 126 "detail/registers.inc" 3 4
                                                   __builtin_offsetof (
 # 126 "detail/registers.inc"
@@ -51795,7 +51795,7 @@ st_space
                                                   )
 # 126 "detail/registers.inc"
                                                   ) + 3*16), register_type::fpr, register_format::vector },
-{ register_id::mm4, "mm4", (41 + 4), 16, ((
+{ register_id::mm4, "mm4", (41 + 4), 8, ((
 # 127 "detail/registers.inc" 3 4
 __builtin_offsetof (
 # 127 "detail/registers.inc"
@@ -51819,7 +51819,7 @@ st_space
 # 127 "detail/registers.inc" 3 4
 )
 # 127 "detail/registers.inc"
-) + 4*16), register_type::fpr, register_format::vector }, { register_id::mm5, "mm5", (41 + 5), 16, ((
+) + 4*16), register_type::fpr, register_format::vector }, { register_id::mm5, "mm5", (41 + 5), 8, ((
 # 127 "detail/registers.inc" 3 4
                 __builtin_offsetof (
 # 127 "detail/registers.inc"
@@ -51843,7 +51843,7 @@ st_space
 # 127 "detail/registers.inc" 3 4
                 )
 # 127 "detail/registers.inc"
-                ) + 5*16), register_type::fpr, register_format::vector }, { register_id::mm6, "mm6", (41 + 6), 16, ((
+                ) + 5*16), register_type::fpr, register_format::vector }, { register_id::mm6, "mm6", (41 + 6), 8, ((
 # 127 "detail/registers.inc" 3 4
                                  __builtin_offsetof (
 # 127 "detail/registers.inc"
@@ -51867,7 +51867,7 @@ st_space
 # 127 "detail/registers.inc" 3 4
                                  )
 # 127 "detail/registers.inc"
-                                 ) + 6*16), register_type::fpr, register_format::vector }, { register_id::mm7, "mm7", (41 + 7), 16, ((
+                                 ) + 6*16), register_type::fpr, register_format::vector }, { register_id::mm7, "mm7", (41 + 7), 8, ((
 # 127 "detail/registers.inc" 3 4
                                                   __builtin_offsetof (
 # 127 "detail/registers.inc"
@@ -51913,7 +51913,7 @@ user_fpregs_struct
 # 129 "detail/registers.inc" 3 4
 , 
 # 129 "detail/registers.inc"
-st_space
+xmm_space
 # 129 "detail/registers.inc" 3 4
 )
 # 129 "detail/registers.inc"
@@ -51937,7 +51937,7 @@ st_space
 # 129 "detail/registers.inc" 3 4
                  , 
 # 129 "detail/registers.inc"
-                 st_space
+                 xmm_space
 # 129 "detail/registers.inc" 3 4
                  )
 # 129 "detail/registers.inc"
@@ -51961,7 +51961,7 @@ st_space
 # 129 "detail/registers.inc" 3 4
                                    , 
 # 129 "detail/registers.inc"
-                                   st_space
+                                   xmm_space
 # 129 "detail/registers.inc" 3 4
                                    )
 # 129 "detail/registers.inc"
@@ -51985,7 +51985,7 @@ st_space
 # 129 "detail/registers.inc" 3 4
                                                      , 
 # 129 "detail/registers.inc"
-                                                     st_space
+                                                     xmm_space
 # 129 "detail/registers.inc" 3 4
                                                      )
 # 129 "detail/registers.inc"
@@ -52010,7 +52010,7 @@ user_fpregs_struct
 # 130 "detail/registers.inc" 3 4
 , 
 # 130 "detail/registers.inc"
-st_space
+xmm_space
 # 130 "detail/registers.inc" 3 4
 )
 # 130 "detail/registers.inc"
@@ -52034,7 +52034,7 @@ st_space
 # 130 "detail/registers.inc" 3 4
                  , 
 # 130 "detail/registers.inc"
-                 st_space
+                 xmm_space
 # 130 "detail/registers.inc" 3 4
                  )
 # 130 "detail/registers.inc"
@@ -52058,7 +52058,7 @@ st_space
 # 130 "detail/registers.inc" 3 4
                                    , 
 # 130 "detail/registers.inc"
-                                   st_space
+                                   xmm_space
 # 130 "detail/registers.inc" 3 4
                                    )
 # 130 "detail/registers.inc"
@@ -52082,7 +52082,7 @@ st_space
 # 130 "detail/registers.inc" 3 4
                                                      , 
 # 130 "detail/registers.inc"
-                                                     st_space
+                                                     xmm_space
 # 130 "detail/registers.inc" 3 4
                                                      )
 # 130 "detail/registers.inc"
@@ -52107,7 +52107,7 @@ user_fpregs_struct
 # 131 "detail/registers.inc" 3 4
 , 
 # 131 "detail/registers.inc"
-st_space
+xmm_space
 # 131 "detail/registers.inc" 3 4
 )
 # 131 "detail/registers.inc"
@@ -52131,7 +52131,7 @@ st_space
 # 131 "detail/registers.inc" 3 4
                  , 
 # 131 "detail/registers.inc"
-                 st_space
+                 xmm_space
 # 131 "detail/registers.inc" 3 4
                  )
 # 131 "detail/registers.inc"
@@ -52155,7 +52155,7 @@ st_space
 # 131 "detail/registers.inc" 3 4
                                    , 
 # 131 "detail/registers.inc"
-                                   st_space
+                                   xmm_space
 # 131 "detail/registers.inc" 3 4
                                    )
 # 131 "detail/registers.inc"
@@ -52179,7 +52179,7 @@ st_space
 # 131 "detail/registers.inc" 3 4
                                                       , 
 # 131 "detail/registers.inc"
-                                                      st_space
+                                                      xmm_space
 # 131 "detail/registers.inc" 3 4
                                                       )
 # 131 "detail/registers.inc"
@@ -52204,7 +52204,7 @@ user_fpregs_struct
 # 132 "detail/registers.inc" 3 4
 , 
 # 132 "detail/registers.inc"
-st_space
+xmm_space
 # 132 "detail/registers.inc" 3 4
 )
 # 132 "detail/registers.inc"
@@ -52228,7 +52228,7 @@ st_space
 # 132 "detail/registers.inc" 3 4
                   , 
 # 132 "detail/registers.inc"
-                  st_space
+                  xmm_space
 # 132 "detail/registers.inc" 3 4
                   )
 # 132 "detail/registers.inc"
@@ -52252,7 +52252,7 @@ st_space
 # 132 "detail/registers.inc" 3 4
                                      , 
 # 132 "detail/registers.inc"
-                                     st_space
+                                     xmm_space
 # 132 "detail/registers.inc" 3 4
                                      )
 # 132 "detail/registers.inc"
@@ -52276,7 +52276,7 @@ st_space
 # 132 "detail/registers.inc" 3 4
                                                         , 
 # 132 "detail/registers.inc"
-                                                        st_space
+                                                        xmm_space
 # 132 "detail/registers.inc" 3 4
                                                         )
 # 132 "detail/registers.inc"
@@ -52398,9 +52398,13 @@ u_debugreg
     }
 
 
+
+
+
     inline const register_info& get_register_info_by_id(register_id id) {
         return get_register_info_by([id](auto &i) {return i.id == id;});
     }
+
 
     inline const register_info& get_register_info_by_name(std::string_view& name) {
         return get_register_info_by([name](auto &i) {return i.name == name;});

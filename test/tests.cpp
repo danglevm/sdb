@@ -7,6 +7,7 @@
 #include <libsdb/bits.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <libsdb/error.hpp>
+#include <libsdb/register_info.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -102,7 +103,8 @@ TEST_CASE("process::resume resume already terminated", "[process]")
 /*************************************/
 /** REGISTERS READ AND WRITE TESTS */
 /*************************************/
-TEST_CASE("Write register rsi", "[register]") {
+
+TEST_CASE("Write registers", "[register]") {
     bool close_on_exec = false;
     /* set up pipe if it doesn't close on execute */
     sdb::pipe channel(close_on_exec);
@@ -159,10 +161,48 @@ TEST_CASE("Write register rsi", "[register]") {
     /* set bits 11-13 (TOS) to 7 */
     regs.write_by_id(register_id::fsw, std::uint16_t{0b0011100000000000});
 
+    /* set ST0 to be valid */
     regs.write_by_id(register_id::ftw, std::uint16_t{0b0011111111111111});
     proc->resume();
     proc->wait_on_signal();
 
     output = channel.read();
     REQUIRE(to_string_view(output) == "42.24");
+}
+
+TEST_CASE("Read registers", "[register]") {
+    auto proc = Process::launch("targets/reg_read", true);
+    auto& regs = proc->get_registers();
+
+    /* to 1st trap */
+    proc->resume();
+    proc->wait_on_signal();
+
+    REQUIRE(regs.read_by_id_as<std::uint64_t>(register_id::r13) == 0xcafecafe);
+
+    /* to 2nd trap */
+    proc->resume();
+    proc->wait_on_signal();
+
+    REQUIRE(regs.read_by_id_as<std::uint8_t>(register_id::r13b) == 42);
+
+     /* to 3rd trap */
+     proc->resume();
+     proc->wait_on_signal();
+ 
+     //ull added for unsigned long long
+     REQUIRE(regs.read_by_id_as<sdb::byte64>(register_id::mm0) == sdb::as_byte64(0xba5eba11ull));
+
+
+     /* to 4th trap */
+     proc->resume();
+     proc->wait_on_signal();
+ 
+     REQUIRE(regs.read_by_id_as<sdb::byte128>(register_id::xmm0) == sdb::as_byte128(64.125));
+
+     proc->resume();
+     proc->wait_on_signal();
+
+     //L suffix added for long double
+     REQUIRE(regs.read_by_id_as<long double>(register_id::st0) == 64.125L);
 }

@@ -15,9 +15,9 @@ long_float_format:  .asciz "%.2Lf"
 
 # Trapping
 .macro trap  
-    movq $62, %rax
-    movq %r12, %rdi 
-    movq $5, %rsi 
+    movq $62, %rax #syscall id for kill is 62, sends a signal
+    movq %r12, %rdi #1st arg is process to be killed off 
+    movq $5, %rsi #signal ID, SIGTRAP id of 5
     syscall 
 .endm
 
@@ -29,7 +29,7 @@ main: # function prologue, carrying out setup - initializing the stack frame
 
     # Get pid syscall
     movq $39, %rax    #39 is getpid syscall
-    syscall
+    syscall           #return value stored in rax
     movq %rax, %r12
 
     trap # 1st

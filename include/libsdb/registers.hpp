@@ -1,13 +1,14 @@
 #ifndef SDB_REGISTERS_HPP
 #define SDB_REGISTERS_HPP
 
-
+#include <cassert>
 #include <atomic>
 #include <cstdint>
 #include <variant>
 #include <sys/user.h>
 #include <libsdb/register_info.hpp>
 #include <libsdb/types.hpp>
+#include <iostream>
 
 
 /* 

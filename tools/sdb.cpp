@@ -138,6 +138,10 @@ namespace
 
             print_stop_reason(*process, reason);
         } 
+        else if (is_prefix(command, "help")) {
+            print_help(args);
+        }
+
         else {
             std::cerr << "Unknown command\n";
         }

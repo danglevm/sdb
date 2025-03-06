@@ -40,7 +40,7 @@ DEFINE_REGISTER macro defined"
                      register_format::long_double) 
 
 #define DEFINE_FP_MM(number)\
-    DEFINE_REGISTER(mm ## number, (41 + number), 16, \
+    DEFINE_REGISTER(mm ## number, (41 + number), 8, \
                     (FPR_OFFSET(st_space) + number*16), register_type::fpr, \
                      register_format::vector) 
 

@@ -48,6 +48,7 @@ sdb::stop_reason::stop_reason(int wait_status)
     }
 }
 
+/* checks if the running process has been stopped */
 sdb::stop_reason sdb::Process::wait_on_signal()
 {
     int wait_status;

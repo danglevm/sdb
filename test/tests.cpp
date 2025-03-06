@@ -114,6 +114,7 @@ TEST_CASE("Write register rsi", "[register]") {
     /* close the write end from the parent's POV */
     channel.close_write();
 
+    /* to first trap */
     proc->resume();
     proc->wait_on_signal();
 
@@ -121,13 +122,47 @@ TEST_CASE("Write register rsi", "[register]") {
     auto& regs = proc->get_registers();
     regs.write_by_id(register_id::rsi, 0xcafecafe);
 
-    /* go until program ends */
+    /* to second trap */
+    proc->resume();
+    proc->wait_on_signal();
+
+    auto output = channel.read();
+    REQUIRE(to_string_view(output) == "0xcafecafe");
+
+    /* tests mm registers */
+    /* check if output matches value */
+    regs.write_by_id(register_id::mm0, 0xba5eba11);
+
+    /* to third trap */
     proc->resume();
     proc->wait_on_signal();
 
     /* check if output matches value */
-    auto output = channel.read();
-    std::cout << to_string_view(output);
-    REQUIRE(to_string_view(output) == "0xcafecafe");
+    output = channel.read();
+    REQUIRE(to_string_view(output) == "0xba5eba11");
 
+    /* tests xmm registers */
+    /* check if output matches value */
+    regs.write_by_id(register_id::xmm0, 42.24);
+
+    /* to fourth trap */
+    proc->resume();
+    proc->wait_on_signal();
+
+    /* check if output matches value */
+    output = channel.read();
+    REQUIRE(to_string_view(output) == "42.24");
+
+    /* top of index */
+    regs.write_by_id(register_id::st0, 42.24l);
+    
+    /* set bits 11-13 (TOS) to 7 */
+    regs.write_by_id(register_id::fsw, std::uint16_t{0b0011100000000000});
+
+    regs.write_by_id(register_id::ftw, std::uint16_t{0b0011111111111111});
+    proc->resume();
+    proc->wait_on_signal();
+
+    output = channel.read();
+    REQUIRE(to_string_view(output) == "42.24");
 }

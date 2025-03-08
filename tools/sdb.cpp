@@ -1,4 +1,5 @@
 #include <iostream>
+#include <type_traits>
 #include <unistd.h> /* provides access to POSIX API */
 #include <string_view>
 #include <string>
@@ -15,6 +16,8 @@
 #include <libsdb/error.hpp>
 #include <libsdb/register_info.hpp>
 #include <libsdb/registers.hpp>
+//#include <fmt/format.h>
+//#include <fmt/ranges.h>
 
 
 /**/
@@ -40,6 +43,7 @@ namespace
         }
     }
     /* read delimited text from the string */
+    // returns std::vector<std::string> for args variable 
     std::vector<std::string> split(std::string_view str, char delimiter) 
     {
         std::vector<std::string> out{};
@@ -65,6 +69,7 @@ namespace
 
     }
 
+
     void print_help(const std::vector<std::string> & args)  {
         if (args.size() == 1) {
             std::cerr << R"(Available commands:
@@ -84,6 +89,44 @@ namespace
         }
     }
 
+    // void handle_register_read(
+    //     sdb::Process & process,
+    //     const std::vector<std::string>& args) {
+    //         /* checks the type of t then check if it's floating point of integral */
+    //         /* returns std::string */
+    //         auto format = [](auto t) {
+    //             if constexpr (std::is_floating_point_v<decltype(t)>) {
+    //                 return fmt::format("{}", t);
+    //             }
+    //             else if constexpr (std::is_integral_v<decltype(t)>) { 
+    //                 return fmt::format("{:#0{}x}", t, sizeof(t) * 2 + 2);
+    //             }
+    //             else {
+    //                 return fmt::format("[{:#04x}]", fmt::join(t, ","));
+    //             }
+    //         }
+    //     }
+
+    /* parser program */
+    void handle_register_write(sdb::Process & process, const std::vector<std::string>& args) {
+        if (args.size() != 4) {
+            print_help({"help", "register"});
+            return;
+        }
+
+        try {
+            auto info = sdb::get_register_info_by_name(args[2]);
+            auto value = parse_register_value(info, args[3]);
+            process.get_registers().write(info, value);
+        }
+
+        catch (sdb::error& err) {
+            std::cerr << err.what() << '\n';
+            return;
+        }
+
+    }
+
     void handle_register_command(
         sdb::Process &process,
         const std::vector<std::string>& args) {
@@ -93,9 +136,9 @@ namespace
             }
 
             if (is_prefix(args[1], "read")) {
-                handle_register_read(process, args);
+                // handle_register_read(process, args);
             }
-            else if (if_prefix(args[1], "write")) {
+            else if (is_prefix(args[1], "write")) {
                 handle_register_write(process, args);
             }
             else {
@@ -182,7 +225,7 @@ namespace
             print_help(args);
         }
         else if (is_prefix(command, "register")) {
-            handle_register_command(*process, arg);
+            handle_register_command(*process, args);
         }
         else {
             std::cerr << "Unknown command\n";
@@ -239,6 +282,9 @@ int main(int argc, const char ** argv)
         std::cerr << "No arguments given\n";
         return EXIT_FAILURE;
     }
+
+    int value = 42;
+    //std::cout << fmt::format("{:#x}", value) << "\n"; // Output: 0x2a
 
     try {
         auto process = attach(argc, argv);

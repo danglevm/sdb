@@ -8,8 +8,6 @@
 #include <sys/user.h>
 #include <libsdb/register_info.hpp>
 #include <libsdb/types.hpp>
-#include <iostream>
-
 
 /* 
 *
@@ -26,7 +24,7 @@ namespace sdb {
             /* disable constructors and assignment operators as each process has its own unique set of reigsters */
             registers() = delete;
             registers(const registers&) = delete;
-            registers& operator = (const registers&) = delete;
+            registers& operator=(const registers&) = delete;
             registers(registers&&) = delete;
             registers& operator=(registers&&) = delete;
 

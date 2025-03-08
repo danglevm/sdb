@@ -14,7 +14,7 @@ install(
 )
 
 
-add_library(libsdb process.cpp pipe.cpp registers.cpp) # add the following source code to be compiled as a library
+add_library(libsdb process.cpp pipe.cpp registers.cpp breakpoint_site_hw.cpp) # add the following source code to be compiled as a library
 add_library(sdb::libsdb ALIAS libsdb) # use a namespaced library target and give it a new name
 
 # Linux outputs library called lib<target_name>. We refine it to sdb

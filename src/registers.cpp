@@ -5,6 +5,7 @@
 #include <libsdb/registers.hpp>
 #include <libsdb/bits.hpp>
 #include <libsdb/process.hpp>
+#include <libsdb/parse.hpp>
 #include <algorithm>
 #include <type_traits>
 
@@ -102,4 +103,35 @@ void sdb::registers::write(const register_info& info, value val) {
                             from_bytes<std::uint64_t>(bytes + aligned_offset));
     }
 
+    /* for writing to register value, parse out the values */
+    sdb::registers::value parse_register_value(sdb::register_info info, std::string_view text) {
+        try {
+            if (info.format == sdb::register_format::uint) {
+                switch (info.size) {
+                    case 1: return sdb::to_integral<std::uint8_t>(text, 16).value(); //1 byte
+                    case 2: return sdb::to_integral<std::uint16_t>(text, 16).value();
+                    case 4: return sdb::to_integral<std::uint32_t>(text, 16).value();
+                    case 8: return sdb::to_integral<std::uint64_t>(text, 16).value();
+                }
+            }
+            else if (info.format == sdb::register_format::double_float) {
+                return sdb::to_float<double>(text).value();
+            }
+            else if (info.format == sdb::register_format::long_double) {
+                return sdb::to_float<long double>(text).value();
+            }
+            else if (info.format == sdb::register_format::vector) {
+                if (info.size == 8) {
+                    return sdb::parse_vector<8>(text);
+                }
+                else if (info.size == 16){
+                    return sdb::parse_vector<16>(text);
+                }
+            }
+        }
+        /* catch all exceptions with ... */
+        catch(...) {
+            sdb::error::send("Invalid format");
+        }
+    }
 }

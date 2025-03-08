@@ -2,6 +2,7 @@
 #define SDB_TYPES_HPP
 
 #include <cstring>
+#include <cstdint>
 #include <array>
 #include <libsdb/types.hpp>
 
@@ -26,6 +27,68 @@ namespace sdb {
         std::memcpy(&To, &from, sizeof(From));
         return To;
     }
+
+    /* storing virtual addresses of breakpoints and programs */
+    /* essentially a wrapper class for a std::uint64_t */
+    class virt_addr {
+        public:
+            virt_addr() = default;
+            /* disallow*/
+            explicit virt_addr(std::uint64_t addr) : addr_(addr) {}
+
+            std::uint64_t addr() const {
+                return addr_;
+            }
+
+            /* operators to overload - change by a certain offset */
+            /* doing virt_addr = base + 0x200 would shift it by that much. Takes the value addr_ of base */
+            virt_addr operator+(std::int64_t offset) const {
+                return virt_addr(addr_ + offset);
+            }
+
+            virt_addr operator-(std::int64_t offset) const {
+                return virt_addr(addr_ - offset);
+            }
+
+            /* not returning a new object but modify so no const */
+            virt_addr& operator+=(std::int64_t offset) {
+                addr_ += offset;
+                return *this; //allows chaining assignment
+            }
+
+            virt_addr& operator-=(std::int64_t offset) {
+                addr_ -= offset;
+                return *this; //allows chaining assignment
+            }
+
+            /* comparison operator */
+            bool operator==(const virt_addr& other) const {
+                return addr_ == other.addr_;
+            }
+
+            bool operator!=(const virt_addr& other) const {
+                return addr_ != other.addr_;
+            }
+
+            bool operator>(const virt_addr& other) const {
+                return addr_ > other.addr_;
+            }
+
+            bool operator>=(const virt_addr& other) const {
+                return addr_ >= other.addr_;
+            }
+
+            bool operator<(const virt_addr& other) const {
+                return addr_ < other.addr_;
+            }
+
+            bool operator<=(const virt_addr& other) const {
+                return addr_ <= other.addr_;
+            }
+
+        private:
+            std::uint64_t addr_= 0;
+    };
 }
 
 #endif

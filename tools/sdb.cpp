@@ -16,6 +16,7 @@
 #include <libsdb/error.hpp>
 #include <libsdb/register_info.hpp>
 #include <libsdb/registers.hpp>
+#include <libsdb/parse.hpp>
 //#include <fmt/format.h>
 //#include <fmt/ranges.h>
 
@@ -59,6 +60,38 @@ namespace
         return out;
     }
 
+    /* for writing to register value, parse out the values */
+    sdb::registers::value parse_register_value(sdb::register_info info, std::string_view text) {
+        try {
+            if (info.format == sdb::register_format::uint) {
+                    switch (info.size) {
+                        case 1: return sdb::to_integral<std::uint8_t>(text, 16).value(); //1 byte
+                        case 2: return sdb::to_integral<std::uint16_t>(text, 16).value();
+                        case 4: return sdb::to_integral<std::uint32_t>(text, 16).value();
+                        case 8: return sdb::to_integral<std::uint64_t>(text, 16).value();
+                    }
+                }
+                else if (info.format == sdb::register_format::double_float) {
+                    return sdb::to_float<double>(text).value();
+                }
+                else if (info.format == sdb::register_format::long_double) {
+                    return sdb::to_float<long double>(text).value();
+                }
+                else if (info.format == sdb::register_format::vector) {
+                    if (info.size == 8) {
+                        return sdb::parse_vector<8>(text);
+                    }
+                    else if (info.size == 16){
+                        return sdb::parse_vector<16>(text);
+                    }
+                }
+            }
+        /* catch all exceptions with ... */
+        catch(...) {
+            sdb::error::send("Invalid format");
+        }
+    }
+
     /* indicates whether a string is equal to a prefix of another string */
     /* used to check for a string whether it's equal or not */
     bool is_prefix(std::string_view prefix, std::string_view str) 
@@ -66,7 +99,6 @@ namespace
         if (prefix.size() > str.size())
             return false;
         return std::equal(prefix.begin(), prefix.end(), str.begin());
-
     }
 
 

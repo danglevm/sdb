@@ -84,7 +84,7 @@ namespace sdb {
     }
 
     /* @param */
-    inline const register_info& get_register_info_by_name(std::string_view& name) {
+    inline const register_info& get_register_info_by_name(const std::string_view& name) {
         return get_register_info_by([name](auto &i) {return i.name == name;});
     }
 

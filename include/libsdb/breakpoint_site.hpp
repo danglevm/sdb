@@ -1,5 +1,5 @@
-#ifndef BREAKPOINT_SITE_HW_HPP
-#define BREAKPOINT_SITE_HW_HPP
+#ifndef BREAKPOINT_SITE_HPP
+#define BREAKPOINT_SITE_HPP
 
 #include <cstdint>
 #include <cstddef>
@@ -9,12 +9,12 @@ namespace sdb {
     class Process; //forward declaration
 
     /* tracks breakpoint state function */
-    class breakpoint_site_hw {
+    class breakpoint_site {
         public: 
             /* disable constructors, assignment operators */
-            breakpoint_site_hw() = delete;
-            breakpoint_site_hw(const breakpoint_site_hw&) = delete;
-            breakpoint_site_hw& operator=(const breakpoint_site_hw&) = delete;
+            breakpoint_site() = delete;
+            breakpoint_site(const breakpoint_site&) = delete;
+            breakpoint_site& operator=(const breakpoint_site&) = delete;
 
             using id_type = std::int32_t; /* unique identifier for breakpoint types */
             id_type id() const {return id_;}
@@ -36,15 +36,14 @@ namespace sdb {
             }
         private:
             friend Process;
-            breakpoint_site_hw(Process & proc, virt_addr address);
-
+            breakpoint_site(Process & proc, virt_addr address);
 
             id_type id_;
             Process * process_;
             virt_addr address_;
             bool is_enabled_;
             std::byte saved_data_; /* member to hold data we replace with int3 instruction */
-    }
+    };
 }
 
 #endif

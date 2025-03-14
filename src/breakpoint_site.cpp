@@ -1,13 +1,13 @@
-#include <libsdb/breakpoint_site_hw.hpp>
+#include <libsdb/breakpoint_site.hpp>
 
 namespace {
     auto get_next_id() {
-        static sdb::breakpoint_site_hw::type_id id = 0;
+        static sdb::breakpoint_site::id_type id = 0;
         return ++id;
     }
 }
 
-sdb::breakpoint_site_hw::breakpoint_site_hw(
+sdb::breakpoint_site::breakpoint_site(
     Process& proc, virt_addr address)
     : process_{&proc}, address_{address}, is_enabled_{false},
     saved_data_{} {

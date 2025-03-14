@@ -52,6 +52,7 @@ namespace sdb {
         return ret;
     }
 
+    /* parse_vector takes in a comma-separated list of hexadecimal integer with leading 0x, with square brackets */
     template<std::size_t N>
     auto parse_vector(std::string_view text) { 
         /* call it everytime we make it incorrect */
@@ -60,7 +61,7 @@ namespace sdb {
         std::array<std::byte, N> bytes;
         const char * c = text.data();
 
-        //comma-separated list of hex integers with leading 0x, surrounded with square brackets
+        //first char
         if (*c++ != '[') invalid ();
 
         //loop over the first N-1 elements, parsing an element with a comma each time.
@@ -74,7 +75,11 @@ namespace sdb {
         bytes[N - 1] = to_integral<std::byte>({c, 4}, 16).value();
         c += 4;
 
+        //last char
         if (*c++ != ']') invalid();
+        if (c != text.end()) invalid();
+
+        return bytes;
 
     }
 }

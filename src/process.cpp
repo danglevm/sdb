@@ -12,7 +12,6 @@
 #include <libsdb/error.hpp>
 #include <libsdb/pipe.hpp>
 #include <cstring>
-#include <iostream>
 
 namespace {
     /* writes the representation of errno to a pipe with given prefix. Send this message and exit with error code */
@@ -263,4 +262,17 @@ void sdb::Process::write_gprs(const user_regs_struct& gprs) {
     if (ptrace(PTRACE_SETREGS, pid_, nullptr, &gprs) < 0) {
         error::send_errno("Could not write general purpose registers");
     }
+}
+
+/* breakpoints */
+sdb::breakpoint_site&
+sdb::Process::create_breakpoint_site(sdb::virt_addr address)
+{
+    //disallow two breakpoints pointing to the same site
+    if (breakpoint_sites_.contains_address(address)) {
+        error::send("Breakpoint site already created at address " + std::to_string(address.addr()));
+    }
+
+    return breakpoint_sites_.push(
+        std::unique_ptr<breakpoint_site>(new breakpoint_site(*this, address)));
 }

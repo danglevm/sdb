@@ -1,13 +1,16 @@
 #ifndef SDB_PROCESS_HPP
 #define SDB_PROCESS_HPP
 
-#include <libsdb/registers.hpp>
+#include "stoppoint_collection.hpp"
+#include <vector>
 #include <filesystem>
 #include <memory>
 #include <sys/types.h>
 #include <sys/user.h>
 #include <optional>
-
+#include <libsdb/breakpoint_site.hpp>
+#include <libsdb/registers.hpp>
+#include <libsdb/stoppoint_collection.hpp>
 
 /* organize my code inside to avoid conflicts, in this case code for sdb */
 namespace sdb 
@@ -76,6 +79,16 @@ namespace sdb
             void write_fprs(const user_fpregs_struct& fprs);
             void write_gprs(const user_regs_struct& gprs);
 
+            /* handling breakpoints */
+            breakpoint_site& create_breakpoint_site(virt_addr address);
+
+            /* returns the reference, expensive otherwise */
+            stoppoint_collection<breakpoint_site>&
+            breakpoint_sites() { return breakpoint_sites_; }
+
+            const stoppoint_collection<breakpoint_site>&
+            breakpoint_sites() const {return breakpoint_sites_; }
+
         private:
             pid_t pid_ = 0;
             bool terminate_on_end_ = true; /* track termination */
@@ -106,6 +119,10 @@ namespace sdb
             /* handling registers */
             void read_all_registers();
             std::unique_ptr<registers> registers_;
+
+            /* dynamically allocating breakpoint sites and store their info here */
+            //std::vector<std::unique_ptr<breakpoint_site>> breakpoint_sites_;
+            stoppoint_collection<breakpoint_site> breakpoint_sites_;
     };
     
 

@@ -17,8 +17,8 @@
 #include <libsdb/register_info.hpp>
 #include <libsdb/registers.hpp>
 #include <libsdb/parse.hpp>
-//#include <fmt/format.h>
-//#include <fmt/ranges.h>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 
 /**/
@@ -121,23 +121,58 @@ namespace
         }
     }
 
-    // void handle_register_read(
-    //     sdb::Process & process,
-    //     const std::vector<std::string>& args) {
-    //         /* checks the type of t then check if it's floating point of integral */
-    //         /* returns std::string */
-    //         auto format = [](auto t) {
-    //             if constexpr (std::is_floating_point_v<decltype(t)>) {
-    //                 return fmt::format("{}", t);
-    //             }
-    //             else if constexpr (std::is_integral_v<decltype(t)>) { 
-    //                 return fmt::format("{:#0{}x}", t, sizeof(t) * 2 + 2);
-    //             }
-    //             else {
-    //                 return fmt::format("[{:#04x}]", fmt::join(t, ","));
-    //             }
-    //         }
-    //     }
+    void handle_register_read(
+        sdb::Process & process,
+        const std::vector<std::string>& args) {
+            /* checks the type of t then check if it's floating point of integral */
+            /* returns std::string */
+            auto format = [](auto t) {
+                if constexpr (std::is_floating_point_v<decltype(t)>) {
+                    return fmt::format("{}", t);
+                }
+                else if constexpr (std::is_integral_v<decltype(t)>) { 
+                    /* enables the amount of padding 0s to use*/
+                    return fmt::format("{:#0{}x}", t, sizeof(t) * 2 + 2);
+                }
+                else {
+                    return fmt::format("[{:#04x}]", fmt::join(t, ","));
+                }
+            };
+
+            /* print all registers or just GPRs */
+            if (args.size() == 2 
+                or (args.size() == 3 and args[2] == "all")) {
+                    
+                    //go through every register in the system
+                    for (auto& info : sdb::g_register_infos) {
+                        auto should_print = (args.size() == 3 or info.type == sdb::register_type::gpr)
+                                            and info.name != "orig_rax";
+                        if (!should_print) continue;
+                        /* if it's a GPR or all, read reg value. */
+                        auto val = process.get_registers().read(info);
+
+                        /* prints out information formatting based on type*/
+                        fmt::print("{}:\t{}\n", info.name, std::visit(format, val));
+                    }
+            }
+            /* print a single register*/
+            else if (args.size() == 3) {
+                try {
+                    auto info = sdb::get_register_info_by_name(args[2]);
+                    auto val = process.get_registers().read(info);
+                    /* prints out information formatting based on type */
+                    fmt::print("{}:\t{}\n", info.name, std::visit(format, val));
+                }
+                catch (sdb::error& err) {
+                    std::cerr << "No such register\n";
+                    return;
+                }
+            }
+            else {
+                print_help({"help", "register"});
+            }
+
+        }
 
     /* parser program */
     void handle_register_write(sdb::Process & process, const std::vector<std::string>& args) {
@@ -168,7 +203,7 @@ namespace
             }
 
             if (is_prefix(args[1], "read")) {
-                // handle_register_read(process, args);
+            handle_register_read(process, args);
             }
             else if (is_prefix(args[1], "write")) {
                 handle_register_write(process, args);

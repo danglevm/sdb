@@ -107,7 +107,7 @@ namespace
             std::cerr << R"(Available commands:
             continue    - Resume the process
             register    - Commands for operating on registers
-            )";
+        )";
         /* handles registers */
         } else if (is_prefix(args[1], "register")) {
             std::cerr << R"(Available commands:
@@ -115,7 +115,7 @@ namespace
             read <register>
             read all
             write <register> <value>
-            )";
+        )";
         } else {
             std::cerr << "No help available on that\n";
         }
@@ -239,25 +239,25 @@ namespace
     /* prints the stop reason for the process */
     void print_stop_reason(const sdb::Process& process, sdb::stop_reason reason)
     {
-        std::cout << "Process " << process.get_pid() << ' ';
+        std::string message;
 
         switch (reason.reason)
         {
             case sdb::process_state::exited:
-                std::cout << "exited with status " << static_cast<int>(reason.info);
+                message = fmt::format("exited with status {}", static_cast<int>(reason.info));
                 break;
 
             case sdb::process_state::terminated:
                 /* sigabbrev returns the abbreviated name of a signal given its number */
-                std::cout << "terminated with signal " << sigabbrev_np(reason.info);
+                message = fmt::format("terminated with signal {}", sigabbrev_np(reason.info));
                 break;
 
             case sdb::process_state::stopped:
-                std::cout << "stopped with signal " << sigabbrev_np(reason.info);
+                message = fmt::format("stopped with signal{} at {:#x}", sigabbrev_np(reason.info), process.get_pc().addr());
                 break;
         }
 
-        std::cout << std::endl;
+        fmt::print("Process {} {} \n", process.get_pid(), message);
     }
     
 

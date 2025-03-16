@@ -11,6 +11,7 @@
 #include <libsdb/breakpoint_site.hpp>
 #include <libsdb/registers.hpp>
 #include <libsdb/stoppoint_collection.hpp>
+#include <libsdb/types.hpp>
 
 /* organize my code inside to avoid conflicts, in this case code for sdb */
 namespace sdb 
@@ -60,8 +61,6 @@ namespace sdb
             */
             static std::unique_ptr<Process> attach (pid_t pid);
             
-
-
             /* get methods */
             pid_t get_pid() const { return pid_; }
             process_state get_state() const { return state_; }
@@ -88,6 +87,13 @@ namespace sdb
 
             const stoppoint_collection<breakpoint_site>&
             breakpoint_sites() const {return breakpoint_sites_; }
+
+            /* get the program counter */
+            virt_addr get_pc () const {
+                return virt_addr{
+                    get_registers().read_by_id_as<std::uint64_t>(register_id::rip)
+                };
+            }
 
         private:
             pid_t pid_ = 0;

@@ -33,7 +33,7 @@ namespace sdb {
     class virt_addr {
         public:
             virt_addr() = default;
-            /* disallow*/
+            /* disallow implicit conversions */
             explicit virt_addr(std::uint64_t addr) : addr_(addr) {}
 
             std::uint64_t addr() const {

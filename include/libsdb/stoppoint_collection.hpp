@@ -107,6 +107,7 @@ namespace sdb {
         return contains_address(address) and get_by_address(address).is_enabled();
     }
 
+    /***** GET FUNCTIONS *****/
     /* get_by_id overloads */
     template<typename Stoppoint>
     Stoppoint& stoppoint_collection<Stoppoint>::get_by_id(
@@ -124,6 +125,20 @@ namespace sdb {
     const Stoppoint& stoppoint_collection<Stoppoint>::get_by_id(
         typename Stoppoint::id_type id) const {
         return const_cast<stoppoint_collection*>(this)->get_by_id(id);
+    }
+
+    template<typename Stoppoint>
+    Stoppoint& stoppoint_collection<Stoppoint>::get_by_address(virt_addr address) {
+        auto it = find_by_address(address);
+        if (it == end(stoppoints_)) {
+            error::send("Stoppoint with given address not found");
+        }
+        return **it;
+    }
+
+    template<typename Stoppoint>
+    const Stoppoint& stoppoint_collection<Stoppoint>::get_by_address(virt_addr address) const {
+        return const_cast<stoppoint_collection*>(this)->get_by_address(address);
     }
 
     /* find the relevant stop point, disable it then erase them from the container */

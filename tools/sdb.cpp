@@ -115,7 +115,7 @@ namespace
             read <register>
             read all
             write <register> <value>
-        )";
+        )" << "\n";
         } else {
             std::cerr << "No help available on that\n";
         }
@@ -274,9 +274,6 @@ namespace
         // std::uint8_t data_8 {0};
 
         // double test = 3.14;
-
-        
-
         /* execute the command based on input */
         if (is_prefix(command, "continue")) 
         {
@@ -293,7 +290,7 @@ namespace
         }
         else if (is_prefix(command, "register")) {
             handle_register_command(*process, args);
-        }
+        } 
         else {
             std::cerr << "Unknown command\n";
         }

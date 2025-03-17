@@ -48,7 +48,7 @@ namespace sdb
             * @param path  path to binary or binary file located in $PATH
             * @param stdout_replacement_fd file descriptor used for stdout
             * @param debug turn on debug mode for launched process. Launched process waits for attachment
-            * @return      process object wrapping stopped child process
+            * @return      unique ptr process object wrapping stopped child process
             */
             static std::unique_ptr<Process> launch(std::filesystem::path path, 
                                                     bool debug = true,
@@ -57,7 +57,7 @@ namespace sdb
             /*
             * Attach to  running process
             * @param pid running process to attach to
-            * @return    process object wrapping stopped process
+            * @return    unique ptr containing process object wrapping stopped process
             */
             static std::unique_ptr<Process> attach (pid_t pid);
             
@@ -79,6 +79,8 @@ namespace sdb
             void write_gprs(const user_regs_struct& gprs);
 
             /* handling breakpoints */
+
+            /* create breakpoints */
             breakpoint_site& create_breakpoint_site(virt_addr address);
 
             /* returns the reference, expensive otherwise */

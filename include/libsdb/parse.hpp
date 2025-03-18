@@ -10,11 +10,13 @@
 
 namespace sdb {
     /* returns either I or nothing */
-    /* converts to integer or nothing */
+    /* converts string to integer or nothing */
     template<typename I>
     std::optional<I> to_integral(std::string_view sv, int base = 10) {
         auto begin = sv.begin();
-        /* base is 16 so to allow a 0x prefix, we have to skip past it */
+
+        /* for parsing hex input */
+        /* hex base is 16 so to allow a 0x prefix, we have to skip past it */
         if (base == 16 and sv.size() > 1 and begin[0] == '0' and begin[1] == 'x') {
             begin += 2;
         }

@@ -12,6 +12,7 @@
 #include <libsdb/error.hpp>
 #include <libsdb/pipe.hpp>
 #include <cstring>
+#include <sys/personality.h>
 
 namespace {
     /* writes the representation of errno to a pipe with given prefix. Send this message and exit with error code */
@@ -91,7 +92,9 @@ sdb::Process::launch(std::filesystem::path path,
     /* CHILD PROCESS */ 
     /****************************** */
     if (pid == 0) 
-    {   
+    {       
+        /* dis*/
+        personality(ADDR_NO_RANDOMIZE);
         /* child process won't be using read end only write end */
         channel.close_read();
 

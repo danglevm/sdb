@@ -171,6 +171,7 @@ namespace sdb {
     void stoppoint_collection<Stoppoint>::for_each(F f) const {
         /* don't break const-correctness and pass a non-const stop point */
         for (const auto & point : stoppoints_) {
+            /* we pass a lambda, then pass */
             f(*point);
         }
     }

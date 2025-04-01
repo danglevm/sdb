@@ -42,7 +42,7 @@ namespace sdb {
             Process * process_;
             virt_addr address_;
             bool is_enabled_;
-            std::byte saved_data_; /* member to hold data we replace with int3 instruction */
+            std::byte saved_data_; // member to hold data we replace with int3 instruction 
     };
 }
 

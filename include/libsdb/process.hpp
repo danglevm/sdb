@@ -97,6 +97,14 @@ namespace sdb
                 };
             }
 
+            /* writes to rip register */
+            void set_pc(virt_addr address) {
+                get_registers().write_by_id(register_id::rip, address.addr());
+            }
+
+            /* step over machine instruction */
+            sdb::stop_reason step_instruction();
+
         private:
             pid_t pid_ = 0;
             bool terminate_on_end_ = true; /* track termination */

@@ -64,7 +64,41 @@ sdb::stop_reason sdb::Process::wait_on_signal()
     /* we have attached to the process and stop it, read all the GPR and FPR into the registers_ variable */
     if (is_attached_ and state_ == process_state::stopped) {
         read_all_registers();
+
+
+        /* back up one instruction */
+        auto instr_begin = get_pc() - 1;
+
+        if (reason.info == SIGTRAP and 
+            breakpoint_sites_.enabled_stoppoint_at_address(instr_begin)) {
+                set_pc(instr_begin);
+            }
     }
+    return reason;
+}
+
+/* execute one instruciton forward */
+sdb::stop_reason sdb::Process::step_instruction() {
+    std::optional<sdb::breakpoint_site*> to_reenable;
+    auto pc = get_pc();
+    if (breakpoint_sites_.enabled_stoppoint_at_address(pc)) {
+        auto& bp = breakpoint_sites_.get_by_address(pc);
+        bp.disable();
+        to_reenable = &bp;
+    }
+    
+    //execute exactly one instruction
+    if (ptrace(PTRACE_SINGLESTEP, pid_, nullptr, nullptr) < 0) {
+        error::send_errno("Could not single step");
+    }
+
+    //wait until the single step has happened.
+    auto reason = wait_on_signal();
+
+    if (to_reenable) {
+        to_reenable.value()->enable();
+    }
+
     return reason;
 }
 
@@ -93,7 +127,7 @@ sdb::Process::launch(std::filesystem::path path,
     /****************************** */
     if (pid == 0) 
     {       
-        /* dis*/
+        /* disables randomization for current process */
         personality(ADDR_NO_RANDOMIZE);
         /* child process won't be using read end only write end */
         channel.close_read();
@@ -177,7 +211,28 @@ sdb::Process::attach(pid_t pid)
 
 void sdb::Process::resume() 
 {
-    /* issue PTRACE_CONT to restart a stopped tracee process */
+    /* process stopped at breakpoint, step over it */
+    auto pc = get_pc();
+
+    /* step over a breakpoint if we are to remove it afterwards */
+    if (breakpoint_sites_.enabled_stoppoint_at_address(pc)) {
+        auto& bp = breakpoint_sites_.get_by_address(pc);
+        //disable and restore the old instruction
+        bp.disable();
+
+        //single step over the replace instruction
+        if (ptrace(PTRACE_SINGLESTEP, pid_, nullptr, nullptr) < 0) {
+            error::send_errno("Failed to single step");
+        }
+
+        int wait_status;
+        if (waitpid(pid_, &wait_status, 0) < 0) {
+            error::send_errno("waitpid failed");
+        }
+
+        bp.enable();
+    }
+    /* restart stopped TRACEE process */
     if (ptrace(PTRACE_CONT, this->pid_, nullptr, nullptr))
     {
         error::send_errno("Could not resume");

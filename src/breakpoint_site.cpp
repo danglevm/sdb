@@ -50,7 +50,7 @@ void sdb::breakpoint_site::enable() {
     is_enabled_ = true;
 }
 
-/* disabling breakpoint */
+// disabling breakpoint 
 void sdb::breakpoint_site::disable() {
     
     //already disabled
@@ -64,7 +64,7 @@ void sdb::breakpoint_site::disable() {
         error::send_errno("Disabling breakpoint site failed");
     }
 
-    /* zeroed out the opcode of int3, which is 0xcc and then apply the saved data */
+    /* zeroed out the opcode of int3, which is 0xcc and then replace the old instruction back in */
     auto restored_data = ((data & ~0xff) | static_cast<std::uint8_t>(saved_data_));
 
     if (ptrace(PTRACE_POKEDATA, process_->get_pid(), address_, restored_data) < 0) {

@@ -29,18 +29,20 @@ namespace
     std::unique_ptr<sdb::Process> attach(int argc, const char ** argv)
     { 
         pid_t pid = 0;
-        /* Passing PID */
+        /* Passing PID - program is running */
         /* argv[1] == "-p" checks the pointer */
         if (argc == 3 && argv[1] == std::string_view("-p")) 
         {
             pid_t pid = std::atoi(argv[2]);
             return sdb::Process::attach(pid);
         }
-        /* passing program's name*/
+        /* passing program's name - program hasn't run yet */
         else 
         {
             const char * program_path = argv[1];
-            return sdb::Process::launch(program_path);
+            auto proc = sdb::Process::launch(program_path);
+            fmt::print("Launched process with PID {}\n", proc->get_pid());
+            return proc;
         }
     }
     /* read delimited text from the string */
@@ -125,7 +127,14 @@ namespace
             enable  <id>
             set <address>
             )";
-        } 
+        } else if (is_prefix(args[1], "step")) {
+            std::cerr << R"(Available commands:
+            breakpoint - Commands for operating on breakpoints
+            continue - Resume the process
+            register - Commands for operating on registers
+            step - Step over a single instruction
+            )";
+        }
         
         else {
             std::cerr << "No help available on that\n";
@@ -373,6 +382,10 @@ namespace
         } 
         else if (is_prefix(command, "breakpoint")) {
             handle_breakpoint_command(*process, args);
+        }
+        else if (is_prefix(command, "step")) {
+            auto reason = process->step_instruction();
+            print_stop_reason(*process, reason);
         }
         else {
             std::cerr << "Unknown command\n";

@@ -1,6 +1,7 @@
 #ifndef SDB_PROCESS_HPP
 #define SDB_PROCESS_HPP
 
+#include "bits.hpp"
 #include "stoppoint_collection.hpp"
 #include <vector>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include <libsdb/registers.hpp>
 #include <libsdb/stoppoint_collection.hpp>
 #include <libsdb/types.hpp>
+#include <libsdb/bits.hpp>
 
 /* organize my code inside to avoid conflicts, in this case code for sdb */
 namespace sdb 
@@ -35,7 +37,7 @@ namespace sdb
         std::uint8_t info;
 
     };
-    /* sdb::process object */
+    /* wraps around an inferior process */
     class Process 
     {
         public:
@@ -78,7 +80,9 @@ namespace sdb
             void write_fprs(const user_fpregs_struct& fprs);
             void write_gprs(const user_regs_struct& gprs);
 
-            /* handling breakpoints */
+            /* 
+            * handling breakpoints 
+            */
 
             /* create breakpoints */
             breakpoint_site& create_breakpoint_site(virt_addr address);
@@ -105,8 +109,32 @@ namespace sdb
             /* step over machine instruction */
             sdb::stop_reason step_instruction();
 
+            //a virtual address to read from and the number of bytes to read
+
+            /*
+            * Read sections of memory from a virtual address of this process (an inferior process)
+            * @param address address to read from
+            * @param amount  amount of memory we have to read from
+            */
+            std::vector<std::byte> read_memory(sdb::virt_addr address, size_t amount) const;
+
+            /*
+            * Write to a virtual address with a span of memory
+            * @param address virtual address to write to in process
+            * @param 
+            */
+            void write_memory(virt_addr address, span<const std::byte> data);
+
+            /* reads a block of memory as an object with a strong type */
+            template<typename T>
+            T read_memory_as(virt_addr address) const {
+                auto data = read_memory(address, sizeof(T));
+                return from_bytes<T>(data.data());
+            }
+
+
         private:
-            pid_t pid_ = 0;
+            pid_t pid_ = 0; //pid of inferior process
             bool terminate_on_end_ = true; /* track termination */
             process_state state_ = process_state::stopped;
             bool is_attached_ = true;

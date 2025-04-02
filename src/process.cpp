@@ -11,8 +11,11 @@
 #include <libsdb/process.hpp>
 #include <libsdb/error.hpp>
 #include <libsdb/pipe.hpp>
+#include <libsdb/bits.hpp>
 #include <cstring>
 #include <sys/personality.h>
+#include <sys/uio.h>
+
 
 namespace {
     /* writes the representation of errno to a pipe with given prefix. Send this message and exit with error code */
@@ -333,4 +336,79 @@ sdb::Process::create_breakpoint_site(sdb::virt_addr address)
 
     return breakpoint_sites_.push(
         std::unique_ptr<breakpoint_site>(new breakpoint_site(*this, address)));
+}
+
+std::vector<std::byte> sdb::Process::read_memory(sdb::virt_addr address, size_t amount) const {
+    std::vector<std::byte> ret(amount);
+
+    //data read from target process is stored in here
+    //filled with struct and size
+    iovec local_desc{ ret.data(), ret.size()};
+
+    //from which the memory should be copied - the remote process
+    //stores page memories
+    std::vector<iovec> remote_descs;
+
+    //populate remote_desc vector with multiple `iovec` entries.
+    //until all requested bytes have been accounted for
+    while (amount > 0) {
+        //how far the offset address goes into page
+        auto offset_into_page = address.addr() & 0xfff;
+
+        //number bytes left in the current page starting from current offset and in the current page
+        auto up_to_next_page = 0x1000 - offset_into_page;
+
+        //read no more than what's left on the page
+        auto chunk_size = std::min(amount, up_to_next_page);
+
+        //chunk of memory to 
+        remote_descs.push_back({ reinterpret_cast<void*> (address.addr(), chunk_size)});
+
+        //how much we have already read
+        amount -= chunk_size;
+        
+        //add how much we have read into
+        address += chunk_size;
+    }
+
+    if (process_vm_readv(this->pid_, &local_desc, /* liovcnt=*/1 ,
+                         remote_descs.data(), /* riovcnt=*/remote_descs.size(), /* flags= */ 0)) {
+                            error::send_errno("Error: could not read process memory with process_vm_readv");
+    }
+
+    return ret;
+}
+
+void sdb::Process::write_memory(virt_addr address, span<const std::byte> data){
+    std::size_t written = 0;
+
+    //loop until we use up all data caller gave us
+    while (written < data.size()) {
+        auto remaining = data.size() - written;
+        std::uint64_t word;
+
+        /* full write with 8 bytes */
+        if (remaining >= 8) {
+            //write the next 8 bytes from the start of the next memory buffer
+            word = from_bytes<std::uint64_t>(data.begin() + written);
+
+        /* partial write for writes fewer than 8 bytes */
+        } else {
+            auto read = read_memory(address + written, 8); //read 8 bytes from that memory address
+            auto word_data = reinterpret_cast<char*>(&word); //to use memcpy on this
+
+            //write the first fewer than 8 bytes into the word
+            std::memcpy(word_data, data.begin() + written, remaining);
+
+            //the remaining data we write in from what we read
+            std::memcpy(word_data + remaining, read.data() + remaining, 8 - remaining);
+        }
+
+        if (ptrace(PTRACE_POKEDATA, pid_, address + written, word) < 0) {
+            error::send_errno("Failed to write virtual memory");
+        }
+
+        //each iteration here writes 8 bytes to the inferior process
+        written += 8;
+    }
 }

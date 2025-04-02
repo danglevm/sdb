@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdint>
 #include <array>
+#include <vector>
 #include <libsdb/types.hpp>
 
 namespace sdb {
@@ -30,6 +31,7 @@ namespace sdb {
 
     /* storing virtual addresses of breakpoints and programs */
     /* essentially a wrapper class for a std::uint64_t */
+    /* processes */
     class virt_addr {
         public:
             virt_addr() = default;
@@ -88,6 +90,37 @@ namespace sdb {
 
         private:
             std::uint64_t addr_= 0;
+    };
+
+    /* represents an existing region of memory */
+    /* wrapper around general memory allocation regions */
+    template<typename T>
+    class span {
+        public:
+            //default constructor for empty span
+            span() = default;
+
+            //pointer and size
+            span(T* data, std::size_t size) : data_(data), size_(size) {}
+            
+            // start and end pointer span
+            span(T* data, T* end) : data_(data), size_(end - data){}
+            template <typename U>
+            span(const std::vector<U>& vec) : data_(vec.data(), size_(vec.size())) {}
+
+            //get start of span
+            T* begin() const {return data_;}
+
+            //get end of span
+            T* end() const {return data_ + size_;} 
+
+            //get size of span
+            std::size_t size() const {return size_;}
+            T& operator[] (std::size_t n) { return *(data_ + n);}
+
+        private:
+            T* data_ = nullptr;
+            std::size_t size_ = 0;
     };
 }
 

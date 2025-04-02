@@ -126,14 +126,14 @@ namespace
             disable <id>
             enable  <id>
             set <address>
-            )";
+        )";
         } else if (is_prefix(args[1], "step")) {
             std::cerr << R"(Available commands:
             breakpoint - Commands for operating on breakpoints
             continue - Resume the process
             register - Commands for operating on registers
             step - Step over a single instruction
-            )";
+        )";
         }
         
         else {
@@ -298,9 +298,56 @@ namespace
             else if (is_prefix(command, "delete")) {
                 process.breakpoint_sites().remove_by_id(*id);
             }
+    }
 
+    void handle_memory_read_command(
+        sdb::Process& process,
+        const std::vector<std::string>& args
+    ) {
+        //cannot convert memory address
+        auto address = sdb::to_integral<std::uint64_t>(args[2], 16);
+        if (!address) {
+            sdb::error::send("Invalid address format");
+        }
+
+        /* default bytes to be read if user doesn't specify */
+        auto n_bytes = 32;
+        
+        //if they have 4 valid arguments - including te number of bytes read
+        if (args.size() == 4) {
+            auto bytes_arg = sdb::to_integral<std::size_t>(args[3]);
+            if (!bytes_arg) {
+                sdb::error::send("Invalid number of bytes");
+            }
+            n_bytes = *bytes_arg;
+        }
+
+        auto data = process.read_memory(sdb::virt_addr{*address}, n_bytes);
 
     }
+
+    /* for handling memory commands and calls */
+    void handle_memory_command(
+        sdb::Process& process,
+        const std::vector<std::string>& args) {
+            if (args.size() < 3) {
+                print_help({"help", "memory"});
+                return;
+            }
+            
+            if (is_prefix(args[1], "read")) {
+                handle_memory_read_command(process, args);
+            }
+
+            else if (is_prefix(args[1], "write")) {
+                //handle_memory_write_command(process, args);
+            }
+            
+            else {
+                print_help({"help", "memory"});
+            }
+        }
+
 
     
 
@@ -386,6 +433,9 @@ namespace
         else if (is_prefix(command, "step")) {
             auto reason = process->step_instruction();
             print_stop_reason(*process, reason);
+        }
+        else if (is_prefix(command, "memory")) {
+            // handle_memory_command(*process, args);
         }
         else {
             std::cerr << "Unknown command\n";

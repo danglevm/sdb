@@ -352,17 +352,15 @@ std::vector<std::byte> sdb::Process::read_memory(sdb::virt_addr address, size_t 
     //populate remote_desc vector with multiple `iovec` entries.
     //until all requested bytes have been accounted for
     while (amount > 0) {
-        //how far the offset address goes into page
-        auto offset_into_page = address.addr() & 0xfff;
-
+        //how far the offset address goes into page - the second part
         //number bytes left in the current page starting from current offset and in the current page
-        auto up_to_next_page = 0x1000 - offset_into_page;
+        auto up_to_next_page = 0x1000 - (address.addr() & 0xfff);
 
         //read no more than what's left on the page
         auto chunk_size = std::min(amount, up_to_next_page);
 
         //chunk of memory to 
-        remote_descs.push_back({ reinterpret_cast<void*> (address.addr(), chunk_size)});
+        remote_descs.push_back({ reinterpret_cast<void*> (address.addr()), chunk_size});
 
         //how much we have already read
         amount -= chunk_size;
@@ -371,11 +369,10 @@ std::vector<std::byte> sdb::Process::read_memory(sdb::virt_addr address, size_t 
         address += chunk_size;
     }
 
-    if (process_vm_readv(this->pid_, &local_desc, /* liovcnt=*/1 ,
-                         remote_descs.data(), /* riovcnt=*/remote_descs.size(), /* flags= */ 0)) {
-                            error::send_errno("Error: could not read process memory with process_vm_readv");
+    if (process_vm_readv(pid_, &local_desc, /* liovcnt=*/1 ,
+                         remote_descs.data(), /* riovcnt=*/remote_descs.size(), /* flags= */ 0) < 0) {
+        error::send_errno("Error: could not read process memory with process_vm_readv");
     }
-
     return ret;
 }
 

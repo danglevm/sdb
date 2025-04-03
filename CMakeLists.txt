@@ -14,5 +14,6 @@ add_subdirectory("tools")
 
 if(BUILD_TESTING)
     find_package(Catch2 CONFIG REQUIRED) # find CMake config file provided by the package itself, Catch2 in this case
+    add_compile_options(-g)
     add_subdirectory("test")
 endif()

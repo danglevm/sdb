@@ -437,3 +437,29 @@ TEST_CASE("Remove breakpoint site works", "[breakpoint]") {
     REQUIRE(proc->breakpoint_sites().empty());
 
 }
+
+/*****************
+***** MEMORY *****
+*****************/
+TEST_CASE("Reading and writing memory works", "[memory]") {
+    bool close_on_exec = false;
+    sdb::pipe channel(close_on_exec);
+
+    auto proc = Process::launch("targets/memory", true, channel.get_write());
+    channel.close_write();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    //convert std::byte into strongly-typed std::uint64_t
+    //read from STDOUT
+    auto a_pointer = from_bytes<std::uint64_t>(channel.read().data());
+    
+    //read 8 bytes
+    auto data_vec = proc->read_memory(virt_addr{ a_pointer }, 8);
+
+    //read the data again as std::byte
+    auto data = from_bytes<std::uint64_t>(data_vec.data());
+
+    REQUIRE(data == 0xcafecafe);
+}

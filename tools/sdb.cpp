@@ -109,7 +109,16 @@ namespace
             std::cerr << R"(Available commands:
             breakpoint  - Commands for operating on breakpoints
             continue    - Resume the process
+            memory      - Commands for operating on memory
             register    - Commands for operating on registers
+            step        - Step over a single instruction
+        )";
+
+        } else if (is_prefix(args[1], "memory")) {
+            std::cerr << R"(Available commands:
+            read <address> - default is 32 bytes
+            read <address> <number of bytes> 
+            write <address> <bytes>
         )";
         /* handles registers */
         } else if (is_prefix(args[1], "register")) {
@@ -323,8 +332,37 @@ namespace
         }
 
         auto data = process.read_memory(sdb::virt_addr{*address}, n_bytes);
+        //batches up the memory and use fmt::print to write in desired format
+        //loops over the data 16 bytes at a time
+        for (std::size_t i = 0; i < data.size(); i += 16) { 
+            auto start = data.begin() + i;
+            auto end = data.begin() + std::min(i + 16, data.size()); //ensures that this doesn't go past the end of the data
 
+            //#016x - prints the address in hex with leading 0x and pads it to 16 characters
+            //{:02x} - pad it to two characters
+            fmt::print("{:#016x}: {:02x}\n",
+                        *address + i, fmt::join(start, end, " "));
+        }
     }
+
+    void handle_memory_write_command
+    (sdb::Process& process,
+     const std::vector<std::string>& args) {
+
+        //write to memory address with what info
+        if (args.size() != 4) {
+            print_help({"help", "memory"});
+            return;
+        }
+
+        auto address = sdb::to_integral<std::uint64_t>(args[2], 16);
+        if (!address) {
+            sdb::error::send("Invalid address format");
+        }
+
+        auto data = sdb::parse_vector(args[3]);
+        process.write_memory(sdb::virt_addr{ *address}, {data.data(), data.size()});
+    }   
 
     /* for handling memory commands and calls */
     void handle_memory_command(
@@ -340,7 +378,7 @@ namespace
             }
 
             else if (is_prefix(args[1], "write")) {
-                //handle_memory_write_command(process, args);
+                handle_memory_write_command(process, args);
             }
             
             else {
@@ -348,8 +386,6 @@ namespace
             }
         }
 
-
-    
 
     // void resume(pid_t pid)
     // {   
@@ -435,7 +471,7 @@ namespace
             print_stop_reason(*process, reason);
         }
         else if (is_prefix(command, "memory")) {
-            // handle_memory_command(*process, args);
+            handle_memory_command(*process, args);
         }
         else {
             std::cerr << "Unknown command\n";

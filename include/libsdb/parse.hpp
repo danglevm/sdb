@@ -10,7 +10,7 @@
 
 namespace sdb {
     /* returns either I or nothing */
-    /* converts string to integer or nothing */
+    /* converts string to some integer type or nothing */
     template<typename I>
     std::optional<I> to_integral(std::string_view sv, int base = 10) {
         auto begin = sv.begin();
@@ -34,6 +34,7 @@ namespace sdb {
     }
 
     /* called only if std::byte is specified as template argument */
+    /* same function as above, converts string to integer */
     template<>
     inline std::optional<std::byte> to_integral(std::string_view sv, int base) {
         auto uint8= to_integral<std::uint8_t>(sv, base);
@@ -54,7 +55,7 @@ namespace sdb {
         return ret;
     }
 
-    /* parse_vector takes in a comma-separated list of hexadecimal integer with leading 0x, with square brackets */
+    /* takes in a comma-separated list of hex integer with leading 0x, with square brackets */
     template<std::size_t N>
     auto parse_vector(std::string_view text) { 
         /* call it everytime we make it incorrect */
@@ -82,8 +83,46 @@ namespace sdb {
         if (c != text.end()) invalid();
 
         return bytes;
-
     }
+
+    /**
+    * Returns a vector with a collectio of std::byte
+    * takes in a comma-separated list of hex integer with leading 0x, with square brackets
+    */
+    //overload that reads value until it hits a ']'
+    inline auto parse_vector(
+        std::string_view text) {
+            auto invalid = [] { sdb::error::send("Invalid format"); };
+
+            std::vector<std::byte> bytes;
+
+            //first element of the string
+            const char* c = text.data();
+
+            //starting character
+            if (*c++ != '[') invalid();
+
+            while (*c != ']') {
+                auto byte = sdb::to_integral<std::byte>({c, 4}, 16);
+                
+                //calling on std::optional
+                bytes.push_back(byte.value());
+                c += 4;
+
+                if (*c == ',') {
+                    ++c;
+                } else if (*c != ']') {
+                    invalid();
+                }
+            }
+
+            //check if we have consumed all the data
+            if (++c != text.end()) {
+                invalid();
+            }
+
+            return bytes;
+        }
 }
 
 #endif

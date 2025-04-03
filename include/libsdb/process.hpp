@@ -114,7 +114,7 @@ namespace sdb
             /*
             * Read sections of memory from a virtual address of this process (an inferior process)
             * @param address address to read from
-            * @param amount  amount of memory we have to read from
+            * @param amount  bytes of memory to read from
             */
             std::vector<std::byte> read_memory(sdb::virt_addr address, size_t amount) const;
 

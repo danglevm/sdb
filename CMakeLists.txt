@@ -6,6 +6,7 @@ project("sdb" LANGUAGES CXX ASM) # enable c++ support
 find_package(PkgConfig MODULE REQUIRED) # find the PkgConfig module, then use pkg_check_modules function to locate readline module
 pkg_check_modules(readline REQUIRED IMPORTED_TARGET readline)
 find_package(fmt CONFIG REQUIRED)
+find_package(zydis CONFIG REQUIRED)
 
 include(CTest)
 

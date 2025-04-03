@@ -17,6 +17,7 @@
 #include <libsdb/register_info.hpp>
 #include <libsdb/registers.hpp>
 #include <libsdb/parse.hpp>
+#include <libsdb/disassembler.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -110,6 +111,7 @@ namespace
             breakpoint  - Commands for operating on breakpoints
             continue    - Resume the process
             memory      - Commands for operating on memory
+            disassemble - Disassemble machine code to assembly
             register    - Commands for operating on registers
             step        - Step over a single instruction
         )";
@@ -144,11 +146,52 @@ namespace
             step - Step over a single instruction
         )";
         }
+        else if (is_prefix(args[1], "disassemble")) {
+            std::cerr << R"(Available options:
+            -c <number of instructions>
+            -a <starting address>
+        )";
+        }
         
         else {
             std::cerr << "No help available on that\n";
         }
     }
+
+    void print_disassembly(sdb::Process& process, sdb::virt_addr address,
+                            size_t n_instructions) {
+        sdb::disassembler dis(process);
+        auto instructions = dis.disassemble(n_instructions, address);
+        for (auto &instr : instructions) {
+            //prints 18 characters wide
+            fmt::print("{:#018x}: {} \n", instr.address.addr(), instr.text);
+        }
+
+    }
+
+        /* prints the stop reason for the process */
+        void print_stop_reason(const sdb::Process& process, sdb::stop_reason reason)
+        {
+            std::string message;
+    
+            switch (reason.reason)
+            {
+                case sdb::process_state::exited:
+                    message = fmt::format("exited with status {}", static_cast<int>(reason.info));
+                    break;
+    
+                case sdb::process_state::terminated:
+                    /* sigabbrev returns the abbreviated name of a signal given its number */
+                    message = fmt::format("terminated with signal {}", sigabbrev_np(reason.info));
+                    break;
+    
+                case sdb::process_state::stopped:
+                    message = fmt::format("stopped with signal{} at {:#x}", sigabbrev_np(reason.info), process.get_pc().addr());
+                    break;
+            }
+    
+            fmt::print("Process {} {} \n", process.get_pid(), message);
+        }
 
     void handle_register_read(
         sdb::Process & process,
@@ -386,7 +429,42 @@ namespace
             }
         }
 
+    void handle_disassemble_command(sdb::Process& process,
+        const std::vector<std::string>& args) {
+            auto address = process.get_pc();
+            std::size_t n_instructions = 5;
 
+            //get the second argument
+            auto it = args.begin() + 1;
+
+            if (*it == "-c" and it + 1 != args.end()) {
+
+                //get number at next arg
+                ++it;
+
+                //increment after converting this to integer
+                auto ret = sdb::to_integral<std::size_t>(*it++);
+                if (!ret) {
+                    sdb::error::send("Invalid instruction count");
+                }
+                n_instructions = *ret;
+            } else if (*it == "-a" and it + 1 != args.end()) {
+                //get address at next arg
+                ++it;
+
+                //increment after converting to integer
+                auto ret = sdb::to_integral<std::uint64_t>(*it++, 16);
+                if (!ret) {
+                    sdb::error::send("Invalid address format");
+                }
+                address = sdb::virt_addr{*ret};
+            } else {
+                print_help({"help", "disassemble"});
+                return;
+            }
+
+            print_disassembly(process, address, n_instructions);
+        }
     // void resume(pid_t pid)
     // {   
     //     /* get the inferior process to continue running */
@@ -408,28 +486,13 @@ namespace
     //     }
     // }
 
-    /* prints the stop reason for the process */
-    void print_stop_reason(const sdb::Process& process, sdb::stop_reason reason)
-    {
-        std::string message;
+    void handle_stop(sdb::Process& process, sdb::stop_reason& reason) {
+        print_stop_reason(process, reason);
 
-        switch (reason.reason)
-        {
-            case sdb::process_state::exited:
-                message = fmt::format("exited with status {}", static_cast<int>(reason.info));
-                break;
-
-            case sdb::process_state::terminated:
-                /* sigabbrev returns the abbreviated name of a signal given its number */
-                message = fmt::format("terminated with signal {}", sigabbrev_np(reason.info));
-                break;
-
-            case sdb::process_state::stopped:
-                message = fmt::format("stopped with signal{} at {:#x}", sigabbrev_np(reason.info), process.get_pc().addr());
-                break;
+        /* process is stopped */
+        if (reason.reason == sdb::process_state::stopped) {
+            print_disassembly(process, process.get_pc(), 8);
         }
-
-        fmt::print("Process {} {} \n", process.get_pid(), message);
     }
     
 
@@ -455,7 +518,7 @@ namespace
             process->resume();
             auto reason = process->wait_on_signal();
 
-            print_stop_reason(*process, reason);
+            handle_stop(*process, reason);
         } 
         else if (is_prefix(command, "help")) {
             print_help(args);
@@ -468,11 +531,15 @@ namespace
         }
         else if (is_prefix(command, "step")) {
             auto reason = process->step_instruction();
-            print_stop_reason(*process, reason);
+            handle_stop(*process, reason);
         }
         else if (is_prefix(command, "memory")) {
             handle_memory_command(*process, args);
         }
+        else if (is_prefix(command, "disassemble")) {
+            handle_disassemble_command(*process, args);
+        }
+
         else {
             std::cerr << "Unknown command\n";
         }

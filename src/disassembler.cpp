@@ -19,7 +19,7 @@ std::vector<sdb::disassembler::instruction> sdb::disassembler::disassemble(std::
 
     //largest x64 instruction is 15 bytes
     //contains instructions we want to decode
-    auto code = proc_->read_memory(*address, 15 * n_instructions);
+    auto code = proc_->read_memory_without_traps(*address, 15 * n_instructions);
 
     ZyanUSize offset = 0;
     ZydisDisassembledInstruction instr; //need the length from this

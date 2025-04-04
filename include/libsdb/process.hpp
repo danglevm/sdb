@@ -37,7 +37,7 @@ namespace sdb
         std::uint8_t info;
 
     };
-    /* wraps around an inferior process */
+    /* wraps around an inferior/tracee process, storing its PID */
     class Process 
     {
         public:
@@ -112,11 +112,13 @@ namespace sdb
             //a virtual address to read from and the number of bytes to read
 
             /*
-            * Read sections of memory from a virtual address of this process (an inferior process)
+            * Read sections of memory from a virtual address of an inferior/tracee process
             * @param address address to read from
             * @param amount  bytes of memory to read from
             */
             std::vector<std::byte> read_memory(sdb::virt_addr address, size_t amount) const;
+
+            std::vector<std::byte> read_memory_without_traps(sdb::virt_addr address, size_t amount) const;
 
             /*
             * Write to a virtual address with a span of memory

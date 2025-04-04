@@ -43,6 +43,9 @@ namespace sdb {
             std::size_t size() const { return stoppoints_.size(); }
             bool empty() const { return stoppoints_.empty(); }
 
+            /* get all sites in a region of memory */
+            std::vector<Stoppoint*> get_in_region(virt_addr low, virt_addr high) const;
+
         private:
             using points_t = std::vector<std::unique_ptr<Stoppoint>>;
             points_t stoppoints_;
@@ -174,6 +177,19 @@ namespace sdb {
             /* we pass a lambda, then pass */
             f(*point);
         }
+    }
+    template<typename Stoppoint>
+    std::vector<Stoppoint*> stoppoint_collection<Stoppoint>::get_in_region(virt_addr low, virt_addr high) const {
+        std::vector<Stoppoint*> ret;
+        //get each pointer out
+        for (const auto & point : stoppoints_) {
+            if (point->in_range(low, high)) {
+
+                //extract the raw pointer from unique_ptr and push into vector 
+                ret.push_back(point.get());
+            }
+        }
+        return ret;
     }
 
 }

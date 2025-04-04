@@ -144,6 +144,7 @@ sdb::Process::launch(std::filesystem::path path,
             }
         }
 
+        //trace this child process - pid = 0
         if (debug and ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) 
         {
             /* error: tracing failed */
@@ -408,4 +409,28 @@ void sdb::Process::write_memory(virt_addr address, span<const std::byte> data){
         //each iteration here writes 8 bytes to the inferior process
         written += 8;
     }
+}
+
+std::vector<std::byte> sdb::Process::read_memory_without_traps(sdb::virt_addr address, size_t amount) const {
+
+    //get the region of memory in that area
+    auto memory = read_memory(address, amount); //std::vector
+
+    //get the breakpoint sites in that region
+    auto sites = breakpoint_sites_.get_in_region(address, address + amount);
+
+    for (auto & site : sites) {
+        //replace `int3` instruction
+        if (!site->is_enabled()) {
+            continue;
+        } 
+        
+        //calculate the offset into the memory to replace
+        auto offset = site->address() - address.addr(); //how far the breakpoint site into the region
+        
+        //replace with saved_data
+        memory[offset.addr()] = site->saved_data_;
+    }
+
+    return memory;
 }

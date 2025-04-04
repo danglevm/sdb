@@ -2,6 +2,7 @@
 #define SDB_PROCESS_HPP
 
 #include "bits.hpp"
+#include "breakpoint_site.hpp"
 #include "stoppoint_collection.hpp"
 #include <vector>
 #include <filesystem>
@@ -85,7 +86,7 @@ namespace sdb
             */
 
             /* create breakpoints */
-            breakpoint_site& create_breakpoint_site(virt_addr address);
+            breakpoint_site& create_breakpoint_site(virt_addr address, bool hardware = false, bool internal = false);
 
             /* returns the reference, expensive otherwise */
             stoppoint_collection<breakpoint_site>&
@@ -134,6 +135,18 @@ namespace sdb
                 return from_bytes<T>(data.data());
             }
 
+            /* 
+            * Set hardware breakpoints and watchpoints
+            * @param id         hardware id to set breakpoint at
+            * @param address    address to set breakpoint at
+            */
+            int set_hardware_breakpoint(breakpoint_site::id_type id, virt_addr address); 
+
+            /* 
+            * Clear the DR register at the given index
+            * @param index  DR register index
+            */
+            void clear_breakpoint_register(int index);
 
         private:
             pid_t pid_ = 0; //pid of inferior process
@@ -169,6 +182,14 @@ namespace sdb
             /* dynamically allocating breakpoint sites and store their info here */
             //std::vector<std::unique_ptr<breakpoint_site>> breakpoint_sites_;
             stoppoint_collection<breakpoint_site> breakpoint_sites_;
+
+            /* 
+            * Set hardware breakpoints and watchpoints internally
+            * @param address    address to set breakpoint at
+            * @param mode       set to execution, reading or read write
+            * @param size       size of the hardware breakpoints
+            */
+            int set_hardware_stoppoint(virt_addr address, sdb::stoppoint_mode mode, std::size_t size);
     };
     
 

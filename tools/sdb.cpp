@@ -21,8 +21,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-
-/**/
 /* anonymous namespace - usage only to the current translation unit or .cpp file */
 namespace 
 {   
@@ -137,6 +135,7 @@ namespace
             disable <id>
             enable  <id>
             set <address>
+            set <address> -h
         )";
         } else if (is_prefix(args[1], "step")) {
             std::cerr << R"(Available commands:
@@ -302,8 +301,13 @@ namespace
                 }
                 else {
                     fmt::print("Current breakpoints:\n");
+
                     /* each stoppoint from stoppoints_ go into auto& site */
+                    /* execute the lambda function for each instance */
                     process.breakpoint_sites().for_each([](auto& site) {
+                        if (site.is_internal()) {
+                            return;
+                        }
                         fmt::print("{}: address = {:#x}, {}\n",
                                     site.id(), site.address().addr(),
                                     site.is_enabled() ? "enabled" : "disabled");
@@ -328,8 +332,16 @@ namespace
                         "hexadecimal, prefixed with '0x'\n");
                     return;
                 }
+                bool hardware = false;
+                if (args.size() == 4) {
+                    if(args[3] == '-h') {
+                        hardware = true;
+                    } else {
+                        sdb::error::send("Invalid breakpoint command argument");
+                    }
+                }
 
-                process.create_breakpoint_site(sdb::virt_addr{address.value()}).enable();
+                process.create_breakpoint_site(sdb::virt_addr{address.value()}, hardware).enable();
                 return;
             }
 

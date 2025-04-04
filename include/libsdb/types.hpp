@@ -8,6 +8,13 @@
 #include <libsdb/types.hpp>
 
 namespace sdb {
+
+    enum class stoppoint_mode{ 
+        read,
+        read_write,
+        execution
+    };
+
     using byte64 = std::array<std::byte, 8>;
     using byte128 = std::array<std::byte, 16>;
 

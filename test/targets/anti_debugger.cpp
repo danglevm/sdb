@@ -26,14 +26,13 @@ int main(int argc, char ** argv) {
     auto safe = checksum();
 
     //write the address of an innocent function out into the world
-    // auto ptr = reinterpret_cast<void*>(&an_innocent_function); 
-    // write(STDOUT_FILENO, &ptr, sizeof(void*));
-    // fflush(stdout);
+    auto ptr = reinterpret_cast<void*>(&an_innocent_function); 
+    write(STDOUT_FILENO, &ptr, sizeof(void*));
+    fflush(stdout);
 
-    // raise(SIGTRAP);
+    raise(SIGTRAP);
 
     while (true){
-        sleep(1);
         //check that checksum's not changed from the start
         if(checksum() == safe) {
             an_innocent_function();
@@ -42,8 +41,8 @@ int main(int argc, char ** argv) {
             std::puts("Ultra bamboozled bratan!");
         }
 
-        // fflush(stdout);
-        // raise(SIGTRAP);
+        fflush(stdout);
+        raise(SIGTRAP);
     }
 
     return 0;

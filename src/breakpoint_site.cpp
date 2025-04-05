@@ -28,7 +28,7 @@ void sdb::breakpoint_site::enable() {
     }
 
     if (is_hardware_) {
-        hardware_register_index = process_->set_breakpoint_register(id_, address_);
+        hardware_register_index_ = process_->set_hardware_breakpoint(id_, address_);
     } else {
         errno = 0;
         std::uint64_t data = ptrace(PTRACE_PEEKDATA, process_->get_pid(), address_, nullptr);

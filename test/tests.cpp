@@ -463,3 +463,43 @@ TEST_CASE("Reading and writing memory works", "[memory]") {
 
     REQUIRE(data == 0xcafecafe);
 }
+
+TEST_CASE("Hardware breakpoint evades checkpoints", "[breakpoint]") {
+    bool close_on_exec = false;
+    sdb::pipe channel(close_on_exec);
+
+    auto proc = Process::launch("targets/anti_debugger", true, channel.get_write());
+    channel.close_write();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    //read an_innocent_function address from the pipe
+    auto func = virt_addr(from_bytes<std::uint64_t>(channel.read().data()));
+
+    //software breakpoint with this address
+    auto &software_site = proc->create_breakpoint_site(func, false);
+    software_site.enable();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+
+    //software breakpoint gets outmaneuvered
+    REQUIRE(to_string_view(channel.read()) == "Ultra bamboozled bratan!\n");
+
+    proc->breakpoint_sites().remove_by_id(software_site.id());
+    auto &hardware_site = proc->create_breakpoint_site(func, true, false);
+    hardware_site.enable();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    //hardware stays right at func, nowhere else
+    REQUIRE(proc->get_pc() == func);
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    REQUIRE(to_string_view(channel.read()) == "You just got bamboozled! You bimbo\n");
+}

@@ -45,9 +45,8 @@ namespace sdb {
 
             //internal breakpoints get id = -1
             id_type id_;
-
             Process * process_;
-            virt_addr address_;
+            virt_addr address_; //address of the breakpoint
             bool is_enabled_;
             std::byte saved_data_; // member to hold data we replace with int3 instruction 
             bool is_internal_; //whether breakpoint is for internal usage

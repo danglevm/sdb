@@ -10,7 +10,7 @@
 namespace sdb {
 
     enum class stoppoint_mode{ 
-        read,
+        write,
         read_write,
         execution
     };

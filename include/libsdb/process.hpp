@@ -51,11 +51,12 @@ namespace sdb
             * @param path  path to binary or binary file located in $PATH
             * @param stdout_replacement_fd file descriptor used for stdout
             * @param debug turn on debug mode for launched process. Launched process waits for attachment
+            * @param fd    replace stdout with a file descriptor
             * @return      unique ptr process object wrapping stopped child process
             */
             static std::unique_ptr<Process> launch(std::filesystem::path path, 
                                                     bool debug = true,
-                                                    std::optional<int> stdout_replacement_fd = std::nullopt); /* default option is nullptr */
+                                                    std::optional<int> stdout_replacement_fd = std::nullopt); 
             
             /*
             * Attach to  running process
@@ -86,7 +87,8 @@ namespace sdb
             */
 
             /* create breakpoints */
-            breakpoint_site& create_breakpoint_site(virt_addr address, bool hardware = false, bool internal = false);
+            breakpoint_site& create_breakpoint_site(virt_addr address, 
+                                    bool hardware = false, bool internal = false);
 
             /* returns the reference, expensive otherwise */
             stoppoint_collection<breakpoint_site>&
@@ -139,12 +141,14 @@ namespace sdb
             * Set hardware breakpoints and watchpoints
             * @param id         hardware id to set breakpoint at
             * @param address    address to set breakpoint at
+            * Return the index with a free DR register
             */
             int set_hardware_breakpoint(breakpoint_site::id_type id, virt_addr address); 
 
             /* 
             * Clear the DR register at the given index
-            * @param index  DR register index
+            * @param index DR register index
+            * Return void
             */
             void clear_breakpoint_register(int index);
 

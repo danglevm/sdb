@@ -15,6 +15,7 @@ add_test_cpp_target(run_endlessly)
 add_test_cpp_target(end_immediately)
 add_test_cpp_target(hello_sdb)
 add_test_cpp_target(memory)
+add_test_cpp_target(anti_debugger)
 
 
 # affects asm sources

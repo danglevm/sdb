@@ -112,14 +112,14 @@ namespace
             disassemble - Disassemble machine code to assembly
             register    - Commands for operating on registers
             step        - Step over a single instruction
-        )";
+    )";
 
         } else if (is_prefix(args[1], "memory")) {
             std::cerr << R"(Available commands:
             read <address> - default is 32 bytes
             read <address> <number of bytes> 
             write <address> <bytes>
-        )";
+    )";
         /* handles registers */
         } else if (is_prefix(args[1], "register")) {
             std::cerr << R"(Available commands:
@@ -127,7 +127,7 @@ namespace
             read <register>
             read all
             write <register> <value>
-        )" << "\n";
+    )" << "\n";
         } else if (is_prefix(args[1], "breakpoint")) {
             std::cerr << R"(Available commands:
             list
@@ -136,20 +136,20 @@ namespace
             enable  <id>
             set <address>
             set <address> -h
-        )";
+    )";
         } else if (is_prefix(args[1], "step")) {
             std::cerr << R"(Available commands:
             breakpoint - Commands for operating on breakpoints
             continue - Resume the process
             register - Commands for operating on registers
             step - Step over a single instruction
-        )";
+    )";
         }
         else if (is_prefix(args[1], "disassemble")) {
             std::cerr << R"(Available options:
             -c <number of instructions>
             -a <starting address>
-        )";
+    )";
         }
         
         else {
@@ -308,9 +308,10 @@ namespace
                         if (site.is_internal()) {
                             return;
                         }
-                        fmt::print("{}: address = {:#x}, {}\n",
+                        fmt::print("{}: address = {:#x}, {}, {}\n",
                                     site.id(), site.address().addr(),
-                                    site.is_enabled() ? "enabled" : "disabled");
+                                    site.is_enabled() ? "enabled" : "disabled",
+                                    site.is_hardware() ? "hardware" : "software");
                     });
                 }
                 return;
@@ -334,14 +335,14 @@ namespace
                 }
                 bool hardware = false;
                 if (args.size() == 4) {
-                    if(args[3] == '-h') {
+                    if(args[3] == "-h") {
                         hardware = true;
                     } else {
                         sdb::error::send("Invalid breakpoint command argument");
                     }
                 }
 
-                process.create_breakpoint_site(sdb::virt_addr{address.value()}, hardware).enable();
+                process.create_breakpoint_site(sdb::virt_addr{*address}, hardware).enable();
                 return;
             }
 

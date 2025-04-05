@@ -9,7 +9,6 @@
 #include <cstddef>
 
 namespace sdb {
-    /* returns either I or nothing */
     /* converts string to some integer type or nothing */
     template<typename I>
     std::optional<I> to_integral(std::string_view sv, int base = 10) {

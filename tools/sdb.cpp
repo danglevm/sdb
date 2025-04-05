@@ -107,6 +107,7 @@ namespace
         if (args.size() == 1) {
             std::cerr << R"(Available commands:
             breakpoint  - Commands for operating on breakpoints
+            watchpoint  - Commands for operating on watchpoints
             continue    - Resume the process
             memory      - Commands for operating on memory
             disassemble - Disassemble machine code to assembly
@@ -130,12 +131,21 @@ namespace
     )" << "\n";
         } else if (is_prefix(args[1], "breakpoint")) {
             std::cerr << R"(Available commands:
-            list
-            delete  <id>
-            disable <id>
-            enable  <id>
-            set <address>
-            set <address> -h
+        list
+        delete  <id>
+        disable <id>
+        enable  <id>
+        set <address>
+        set <address> -h
+    )";
+        } else if (is_prefix(args[1], "watchpoint")) {
+            std::cerr << R"(Available commands:
+        list
+        delete  <id>
+        disable <id>
+        enable  <id>
+        set <address>
+        set <address> <write|rw|execute> <size
     )";
         } else if (is_prefix(args[1], "step")) {
             std::cerr << R"(Available commands:
@@ -499,6 +509,111 @@ namespace
     //     }
     // }
 
+    /*********************
+    * Breakpoint commands
+    **********************/
+    void handle_watchpoint_list(sdb::Process & process, 
+        const std::vector<std::string>& args) {
+            /* outputs string based on stuffs */
+            auto mode_to_string = [] (auto mode) {
+                switch(mode) {
+                    case sdb::stoppoint_mode::write: return "write";
+                    case sdb::stoppoint_mode::read_write: return "read_write";
+                    case sdb::stoppoint_mode::execution: return "execution";
+                    default: sdb::error::send("Invalid stoppoint mode");
+                } 
+            };
+
+            if (process.watchpoints().empty()) {
+                fmt::print("No watchpoints set\n");
+            }
+            else {
+                fmt::print("Current watchpoints:\n");
+
+                /* each stoppoint from stoppoints_ go into auto& site */
+                /* execute the lambda function for each instance */
+                process.watchpoints().for_each([&](auto& point) {
+                    fmt::print("{}: address = {:#x}, mode = {}, size = {}, {}\n",
+                                point.id(), point.address().addr(),
+                                stoppoint_mode_to_string(point.mode()), point.size(),
+                                point.is_enabled() ? "enabled" : "disabled");
+                });
+            }
+            return;
+    }
+
+    void handle_watchpoint_set(sdb::Process & process, 
+        const std::vector<std::string>& args) {
+
+            if (args.size() != 5) {
+                print_help({ "help", "watchpoint" });
+                return;
+            }
+
+            auto address = sdb::to_integral<std::uint64_t>(args[2], 16);
+            auto mode_text = args[3];
+            auto size = sdb::to_integral<std::size_t>(args[4], 10);
+
+            if (!address or !size or 
+                !(mode_text == "write" or
+                  mode_text == "rw"  or 
+                  mode_text == "execute")) {
+                    print_help({ "help", "watchpoint" });
+                    return;
+            }
+
+            sdb::stoppoint_mode mode;
+            if (mode_text == "write") mode = sdb::stoppoint_mode::write;
+            else if (mode_text == "rw") mode = sdb::stoppoint_mode::read_write;
+            else if (mode_text == "execute") mode = sdb::stoppoint_mode::execution;
+
+            process.create_watchpoint(
+                sdb::virt_addr{*address}, mode, *size).enable();
+    }
+
+    void handle_watchpoint_command(sdb::Process & process, 
+        const std::vector<std::string>& args) {
+
+            //doesn't fit any commands
+            if (args.size() < 2) {
+                print_help({"help", "watchpoint"});
+                return;
+            }
+
+            auto command = args[1];
+            if (is_prefix(command, "list")) {
+                handle_watchpoint_list(process, args);
+                return;
+            }
+
+            if (is_prefix(command, "set")) {
+                handle_watchpoint_set(process, args);
+                return;
+            }
+
+            //expects watchpoint id
+            if (args.size() < 3) {
+                print_help({ "help", "watchpoint" });
+                return;
+            }
+
+            auto id = sdb::to_integral<sdb::watchpoint_site::id_type>(args[2]);
+            if (!id) {
+                std::cerr << "Watchpoint command expects watchpoint id";
+            }
+
+            if (is_prefix(command, "enable")) {
+                process.watchpoints().get_by_id(*id).enable();
+            }
+            else if (is_prefix(command, "disable")) {
+                process.watchpoints().get_by_id(*id).disable();
+            }
+            else if (is_prefix(command, "delete")) {
+                process.watchpoints().remove_by_id(*id);
+            }
+
+        }
+
     void handle_stop(sdb::Process& process, sdb::stop_reason& reason) {
         print_stop_reason(process, reason);
 
@@ -551,6 +666,9 @@ namespace
         }
         else if (is_prefix(command, "disassemble")) {
             handle_disassemble_command(*process, args);
+        }
+        else if (is_prefix(command, "watchpoint")) {
+            handle_watchpoint_command(*process, args);
         }
 
         else {

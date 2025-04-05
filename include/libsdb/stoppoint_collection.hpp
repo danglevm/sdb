@@ -14,8 +14,11 @@ namespace sdb {
     template <typename Stoppoint>
     class stoppoint_collection {
         public:
-            /* adds a new stop point to collection */
-            Stoppoint& push(std::unique_ptr<Stoppoint> bs); //bs - breakpoint sites
+            /* Adds a new stop point to collection 
+            * @param bs breakpoint to add
+            * Return a reference to the added stoppoint
+            */
+            Stoppoint& push(std::unique_ptr<Stoppoint> bs); 
 
             /* check if the collection contains a matching stop point */
             bool contains_id(typename Stoppoint::id_type id) const;

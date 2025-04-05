@@ -11,10 +11,14 @@ namespace sdb {
     /* tracks breakpoint state function */
     class breakpoint_site {
         public: 
-            /* disable constructors, assignment operators */
+            /* disable constructors, assignment operators, move and copy move */
             breakpoint_site() = delete;
             breakpoint_site(const breakpoint_site&) = delete;
             breakpoint_site& operator=(const breakpoint_site&) = delete;
+            breakpoint_site(const breakpoint_site&&) = delete;
+            breakpoint_site& operator=(const breakpoint_site&&) = delete;
+
+            ~breakpoint_site() = default;
 
             using id_type = std::int32_t; /* unique identifier for breakpoint types */
             id_type id() const {return id_;}

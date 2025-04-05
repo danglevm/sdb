@@ -4,6 +4,8 @@
 #include "bits.hpp"
 #include "breakpoint_site.hpp"
 #include "stoppoint_collection.hpp"
+#include "types.hpp"
+#include "watchpoint.hpp"
 #include <vector>
 #include <filesystem>
 #include <memory>
@@ -90,12 +92,22 @@ namespace sdb
             breakpoint_site& create_breakpoint_site(virt_addr address, 
                                     bool hardware = false, bool internal = false);
 
-            /* returns the reference, expensive otherwise */
+            /* create watchpoints */
+            watchpoint_site& create_watchpoint(
+                virt_addr address, stoppoint_mode mode, std::size_t size);
+
+            /* returns the reference to a breakpoint site, expensive otherwise */
             stoppoint_collection<breakpoint_site>&
             breakpoint_sites() { return breakpoint_sites_; }
 
             const stoppoint_collection<breakpoint_site>&
             breakpoint_sites() const {return breakpoint_sites_; }
+
+            stoppoint_collection<breakpoint_site>&
+            watchpoint_sites() { return watchpoints_; }
+
+            const stoppoint_collection<breakpoint_site>&
+            watchpoint_sites() const {return watchpoints_; }
 
             /* get the program counter */
             virt_addr get_pc () const {
@@ -145,12 +157,18 @@ namespace sdb
             */
             int set_hardware_breakpoint(breakpoint_site::id_type id, virt_addr address); 
 
+            /*
+            * Set watchpoints
+            *
+            */
+            int set_watchpoint(breakpoint_site::id_type id, virt_addr address, sdb::stoppoint_mode mode, std::size_t size);
             /* 
-            * Clear the DR register at the given index
+            * Clear the hardware stoppoint
             * @param index DR register index
             * Return void
             */
-            void clear_breakpoint_register(int index);
+            void clear_hardware_stoppoint(int index);
+
 
         private:
             pid_t pid_ = 0; //pid of inferior process
@@ -186,6 +204,9 @@ namespace sdb
             /* dynamically allocating breakpoint sites and store their info here */
             //std::vector<std::unique_ptr<breakpoint_site>> breakpoint_sites_;
             stoppoint_collection<breakpoint_site> breakpoint_sites_;
+
+            /* collection of watchpoints */
+            stoppoint_collection<watchpoint_site> watchpoints_;
 
             /* 
             * Set hardware breakpoints and watchpoints internally

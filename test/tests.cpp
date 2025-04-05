@@ -503,3 +503,35 @@ TEST_CASE("Hardware breakpoint evades checkpoints", "[breakpoint]") {
 
     REQUIRE(to_string_view(channel.read()) == "You just got bamboozled! You bimbo\n");
 }
+
+TEST_CASE("Watchpoint detects reads", "[breakpoint]") {
+    bool close_on_exec = false;
+    sdb::pipe channel(close_on_exec);
+
+    auto proc = Process::launch("targets/anti_debugger", true, channel.get_write());
+    channel.close_write();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    //read an_innocent_function address from the pipe
+    auto func = virt_addr(from_bytes<std::uint64_t>(channel.read().data()));
+
+    auto &watch = create_watchpoint(func, execution , 1);
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    proc->step_instruction();
+    auto& soft = proc->create_breakpoint_site(func, false);
+    soft.enable();
+
+    proc->resume();
+    proc->wait_on_signal();
+    REQUIRE(reason.info == SIGTRAP);
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    REQUIRE(to_string_view(channel.read()) == "You just got bamboozled! You bimbo\n");
+}

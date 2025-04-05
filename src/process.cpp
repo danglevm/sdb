@@ -371,6 +371,21 @@ sdb::Process::create_breakpoint_site(sdb::virt_addr address, bool hardware, bool
         std::unique_ptr<breakpoint_site>(new breakpoint_site(*this, address, internal, hardware)));
 }
 
+sdb::watchpoint_site&
+sdb::Process::create_watchpoint(virt_addr address, stoppoint_mode mode, std::size_t size)
+{
+
+    //disallow two breakpoints pointing to the same site
+    if (watchpoints_.contains_address(address)) {
+        error::send("Watchpoint already created at address " + std::to_string(address.addr()));
+    }
+
+    return watchpoints_.push(
+        std::unique_ptr<watchpoint_site>(new watchpoint_site(*this, address, mode, size)));
+}
+
+
+
 std::vector<std::byte> sdb::Process::read_memory(sdb::virt_addr address, size_t amount) const {
     std::vector<std::byte> ret(amount);
 
@@ -472,21 +487,25 @@ int sdb::Process::set_hardware_breakpoint(breakpoint_site::id_type id, virt_addr
     //size of execution breakpoint must be 1
     return set_hardware_stoppoint(address, sdb::stoppoint_mode::execution, 1);
 }
+int sdb::Process::set_watchpoint(sdb::watchpoint_id_type id, virt_addr address, 
+    sdb::stoppoint_mode mode, std::size_t size) {
+    return set_hardware_stoppoint(address, mode, size);
+}
 
 
 int sdb::Process::set_hardware_stoppoint(virt_addr address, sdb::stoppoint_mode mode, std::size_t size) {
 
     //read control register dr7
     auto &regs = get_registers();
-    auto control= regs.read_by_id_as<std::uint64_t>(sdb::register_id::dr7);
+    auto control = regs.read_by_id_as<std::uint64_t>(sdb::register_id::dr7);
 
-    int free_index = find_free_stoppoint_register(control);
+    int free_space = find_free_stoppoint_register(control);
 
     //dr0, dr1, dr2, dr3 all follow in enum values so we convert it
-    auto free_space = static_cast<int>(sdb::register_id::dr0) + free_index;
+    auto id = static_cast<int>(sdb::register_id::dr0) + free_space;
 
     //write the address to that location
-    regs.write_by_id(static_cast<sdb::register_id>(free_space), address.addr());
+    regs.write_by_id(static_cast<sdb::register_id>(id), address.addr());
 
     //encode bits for mode and size - set two bits at a time
     auto mode_flag = encode_hardware_stoppoint_mode(mode);
@@ -494,11 +513,11 @@ int sdb::Process::set_hardware_stoppoint(virt_addr address, sdb::stoppoint_mode 
 
     //set bits
     auto enable_bit = (1 << (free_space * 2));
-    auto mode_bits = (mode_flag << ((free_space * 4) + 16));
-    auto size_bits = (size_flag << ((free_space * 4) + 18));
+    auto mode_bits = (mode_flag << (free_space * 4 + 16));
+    auto size_bits = (size_flag << (free_space * 4 + 18));
 
     //assume enable, mode and size bits are all 1 to make the bitmask
-    auto clear_mask =  (0b11 << (free_space * 2)) | (0b11 << ((free_space * 4) + 16)) | (0b11 << ((free_space * 4) + 18)); 
+    auto clear_mask =  (0b11 << (free_space * 2)) | (0b1111 << (free_space * 4 + 16)); 
     
     //reset according bit values for control register
     auto masked = control & ~clear_mask;
@@ -508,10 +527,11 @@ int sdb::Process::set_hardware_stoppoint(virt_addr address, sdb::stoppoint_mode 
 
     regs.write_by_id(sdb::register_id::dr7, masked);
 
-    return free_index;
+    return free_space;
 }   
 
-void sdb::Process::clear_breakpoint_register(int index) {
+
+void sdb::Process::clear_hardware_stoppoint(int index) {
 
     //id to reset debug register
     auto id = static_cast<int>(sdb::register_id::dr0) + index; 
@@ -525,7 +545,7 @@ void sdb::Process::clear_breakpoint_register(int index) {
     regs.write_by_id(static_cast<sdb::register_id>(id), 0);
 
     //mask and clear the relevant bits at register dr7
-    auto clear_mask =  (0b11 << (free_space * 2)) | (0b11 << ((free_space * 4) + 16)) | (0b11 << ((free_space * 4) + 18)); 
+    auto clear_mask =  (0b11 << (id * 2)) | (0b1111 << (id * 4 + 16)); 
     auto masked = control & ~clear_mask;
     regs.write_by_id(sdb::register_id::dr7, masked);
 }

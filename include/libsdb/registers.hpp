@@ -37,6 +37,7 @@ namespace sdb {
             value read(const register_info& info) const;
             void write(const register_info& info, value val);
 
+            /* returns a parameter reading from the register */
             template <typename T>
             T read_by_id_as(register_id id) const {
                 return std::get<T>(read(get_register_info_by_id(id)));

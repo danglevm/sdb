@@ -20,11 +20,20 @@
 #include <libsdb/disassembler.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <csignal>
 
 /* anonymous namespace - usage only to the current translation unit or .cpp file */
 namespace 
 {   
-    
+    sdb::Process* g_sdb_process = nullptr;
+
+    /* signal handler that sends a SIGSTOP */
+    void handle_sigint(int) {
+        kill(g_sdb_process->get_pid(), SIGSTOP);
+    }
+
+
+
     std::unique_ptr<sdb::Process> attach(int argc, const char ** argv)
     { 
         pid_t pid = 0;
@@ -44,6 +53,44 @@ namespace
             return proc;
         }
     }
+
+    /* utility functions */
+
+    /* gets debug information if process is stopped from SIGTRAP */
+    std::string get_sigtrap_info(const sdb::Process& process, sdb::stop_reason reason) {
+        if (reason.trap_reason == sdb::trap_type::software_break) {
+            auto &site = process.breakpoint_sites().get_by_address(process.get_pc()); 
+            return fmt::format("(breakpoint {})", site.id());
+        }
+        if (reason.trap_reason == sdb::trap_type::hardware_break) {
+            auto id = process.get_current_hardware_stoppoint();
+
+            //returned index is hardware breakpoint
+            if (id.index() == 0) {
+                return fmt::format("(breakpoint {})", std::get<0>(id));
+            }
+
+            //otherwise it's a watchpoint
+            std::string message;
+
+            //index is watchpoint
+            auto &point = process.watchpoint_sites().get_by_id(std::get<1>(id));
+            message += fmt::format("(watchpoint {})", point.id());
+
+            if (point.previous_data() == point.data()) {
+                message += fmt::format("\nValue: {:#x}", point.data());
+            } else {
+                message += fmt::format("\nOld Value: {:#x} New Value: {:#x}", 
+                                        point.previous_data(), point.data());
+            }
+            return message;
+        } else if (reason.trap_reason == sdb::trap_type::single_step) {
+            return "(single step)";
+        }
+
+        return "";
+    }
+
     /* read delimited text from the string */
     // returns std::vector<std::string> for args variable 
     std::vector<std::string> split(std::string_view str, char delimiter) 
@@ -114,7 +161,7 @@ namespace
             register    - Commands for operating on registers
             step        - Step over a single instruction
     )";
-
+        
         } else if (is_prefix(args[1], "memory")) {
             std::cerr << R"(Available commands:
             read <address> - default is 32 bytes
@@ -131,21 +178,21 @@ namespace
     )" << "\n";
         } else if (is_prefix(args[1], "breakpoint")) {
             std::cerr << R"(Available commands:
-        list
-        delete  <id>
-        disable <id>
-        enable  <id>
-        set <address>
-        set <address> -h
+            list
+            delete  <id>
+            disable <id>
+            enable  <id>
+            set <address>
+            set <address> -h
     )";
         } else if (is_prefix(args[1], "watchpoint")) {
             std::cerr << R"(Available commands:
-        list
-        delete  <id>
-        disable <id>
-        enable  <id>
-        set <address>
-        set <address> <write|rw|execute> <size
+            list
+            delete  <id>
+            disable <id>
+            enable  <id>
+            set <address>
+            set <address> <write|rw|execute> <size in byte>
     )";
         } else if (is_prefix(args[1], "step")) {
             std::cerr << R"(Available commands:
@@ -196,6 +243,9 @@ namespace
     
                 case sdb::process_state::stopped:
                     message = fmt::format("stopped with signal{} at {:#x}", sigabbrev_np(reason.info), process.get_pc().addr());
+                    if (reason.info == SIGTRAP) {
+                        message += get_sigtrap_info(process, reason);
+                    }
                     break;
             }
     
@@ -524,7 +574,7 @@ namespace
                 } 
             };
 
-            if (process.watchpoints().empty()) {
+            if (process.watchpoint_sites().empty()) {
                 fmt::print("No watchpoints set\n");
             }
             else {
@@ -532,10 +582,10 @@ namespace
 
                 /* each stoppoint from stoppoints_ go into auto& site */
                 /* execute the lambda function for each instance */
-                process.watchpoints().for_each([&](auto& point) {
+                process.watchpoint_sites().for_each([&](auto& point) {
                     fmt::print("{}: address = {:#x}, mode = {}, size = {}, {}\n",
                                 point.id(), point.address().addr(),
-                                stoppoint_mode_to_string(point.mode()), point.size(),
+                                mode_to_string(point.mode()), point.size(),
                                 point.is_enabled() ? "enabled" : "disabled");
                 });
             }
@@ -599,17 +649,17 @@ namespace
 
             auto id = sdb::to_integral<sdb::watchpoint_site::id_type>(args[2]);
             if (!id) {
-                std::cerr << "Watchpoint command expects watchpoint id";
+                std::cerr << "Watchpoint command expects watchpoint id\n";
             }
 
             if (is_prefix(command, "enable")) {
-                process.watchpoints().get_by_id(*id).enable();
+                process.watchpoint_sites().get_by_id(*id).enable();
             }
             else if (is_prefix(command, "disable")) {
-                process.watchpoints().get_by_id(*id).disable();
+                process.watchpoint_sites().get_by_id(*id).disable();
             }
             else if (is_prefix(command, "delete")) {
-                process.watchpoints().remove_by_id(*id);
+                process.watchpoint_sites().remove_by_id(*id);
             }
 
         }
@@ -728,10 +778,17 @@ int main(int argc, const char ** argv)
     }
 
     int value = 42;
-    //std::cout << fmt::format("{:#x}", value) << "\n"; // Output: 0x2a
 
     try {
         auto process = attach(argc, argv);
+        g_sdb_process = process.get();
+
+        if (signal(SIGINT, handle_sigint) ==  SIG_ERR) {
+            std::cerr << "Error occurred while setting the signal handler\n";
+            return EXIT_FAILURE;
+        }
+
+        /* install handle_sigint */
         main_loop(process);
     }
     catch (const sdb::error& err) {

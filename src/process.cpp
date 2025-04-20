@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <iso646.h>
 #include <memory>
 #include <optional>
 #include <sys/ptrace.h>
@@ -25,6 +26,13 @@ namespace {
         channel.write(reinterpret_cast<std::byte*> (message.data()), message.size());
         /* terminate the child process with this exit code */
         std::exit(-1);
+    }
+
+    //distinguish normal traps from those of a system call
+    void set_ptrace_options(pid_t pid) {
+        if (ptrace(PTRACE_SETOPTIONS, pid, NULL, PTRACE_O_TRACESYSGOOD) < 0) {
+            sdb::error::send_errno("ptrace set options with TRACESYSGOOD failed");
+        }
     }
 
     /* switch statements to handle mode and size bits */
@@ -82,7 +90,7 @@ sdb::stop_reason::stop_reason(int wait_status)
     }
 }
 
-/* checks if the running process has been stopped */
+/* checks if the tracee process has changed state */
 sdb::stop_reason sdb::Process::wait_on_signal()
 {
     int wait_status;
@@ -96,17 +104,32 @@ sdb::stop_reason sdb::Process::wait_on_signal()
     state_ = reason.reason;
 
     /* we have attached to the process and stop it, read all the GPR and FPR into the registers_ variable */
-    if (is_attached_ and state_ == process_state::stopped) {
+    //if (is_attached_ and state_ == process_state::stopped) {
+    if (state_ == process_state::stopped) {
         read_all_registers();
-
+        augment_stop_reason(reason);
 
         /* back up one instruction */
         auto instr_begin = get_pc() - 1;
 
-        if (reason.info == SIGTRAP and 
-            breakpoint_sites_.enabled_stoppoint_at_address(instr_begin)) {
-                set_pc(instr_begin);
+        if (reason.info == SIGTRAP) {
+            if (reason.trap_reason == sdb::trap_type::software_break and 
+                breakpoint_sites_.contains_address(instr_begin) and 
+                breakpoint_sites_.get_by_address(instr_begin).is_enabled()) {
+                    set_pc(instr_begin);
+            } else if (reason.trap_reason == sdb::trap_type::hardware_break) {
+                //check which hardware stoppoint that caused the process to stop
+                auto id = get_current_hardware_stoppoint();
+                //if it's a watchpoint
+                if (id.index() == 1) {
+                    //get the id  - std::variant value stored at index 1 and update data
+                    watchpoints_.get_by_id(std::get<1>(id)).update_data();
+                }
+            //trap occurs from syscall
+            } else if (reason.trap_reason == sdb::trap_type::syscall) {
+                reason = maybe_resume_from_syscall(reason);
             }
+        }
     }
     return reason;
 }
@@ -161,8 +184,16 @@ sdb::Process::launch(std::filesystem::path path,
     /****************************** */
     if (pid == 0) 
     {       
-        /* disables randomization for current process */
+
+        //automatically applies to the PID of the calling process and set PGID to PID
+        if (setpgid(0, 0)) {
+            exit_with_perror(channel, "Could not set pgid");
+        }
+
+        /* disables address space randomization for current process - disables ASLR */
         personality(ADDR_NO_RANDOMIZE);
+
+
         /* child process won't be using read end only write end */
         channel.close_read();
 
@@ -211,8 +242,12 @@ sdb::Process::launch(std::filesystem::path path,
     //std::unique_ptr<Process> proc = std::make_unique<Process>(pid, /*terminate_on_end=*/true);
     std::unique_ptr<Process> proc (new Process(pid, /*terminate_on_end=*/true, debug));
 
+    //in debug mode
     if (debug) {
         proc->wait_on_signal();
+
+        //enable this option to enable the tracee to distinguish between different types of SYSTRAP
+        set_ptrace_options(proc->get_pid());
     }
 
     return proc;
@@ -240,6 +275,7 @@ sdb::Process::attach(pid_t pid)
     // std::unique_ptr<Process> proc = std::make_unique<Process>(pid, /*terminate_on_end=*/false);
     std::unique_ptr<Process> proc (new Process(pid, /*terminate_on_end=*/false, /*attached=*/true));
     proc->wait_on_signal();
+    set_ptrace_options(proc->get_pid());
 
     return proc;
 }
@@ -268,7 +304,12 @@ void sdb::Process::resume()
         bp.enable();
     }
     /* restart stopped TRACEE process */
-    if (ptrace(PTRACE_CONT, this->pid_, nullptr, nullptr))
+
+    /* change request depending on policy */
+    auto request = 
+        syscall_catch_policy_.get_mode() == syscall_catch_policy::mode::none ? PTRACE_CONT : PTRACE_SYSCALL; 
+
+    if (ptrace(request, this->pid_, nullptr, nullptr))
     {
         error::send_errno("Could not resume");
     }
@@ -482,12 +523,12 @@ std::vector<std::byte> sdb::Process::read_memory_without_traps(sdb::virt_addr ad
     return memory;
 }
 
-int sdb::Process::set_hardware_breakpoint(breakpoint_site::id_type id, virt_addr address) {
+int sdb::Process::set_hardware_breakpoint(watchpoint_site::id_type id, virt_addr address) {
 
     //size of execution breakpoint must be 1
     return set_hardware_stoppoint(address, sdb::stoppoint_mode::execution, 1);
 }
-int sdb::Process::set_watchpoint(sdb::watchpoint_id_type id, virt_addr address, 
+int sdb::Process::set_watchpoint(sdb::watchpoint_site::id_type id, virt_addr address, 
     sdb::stoppoint_mode mode, std::size_t size) {
     return set_hardware_stoppoint(address, mode, size);
 }
@@ -548,5 +589,116 @@ void sdb::Process::clear_hardware_stoppoint(int index) {
     auto clear_mask =  (0b11 << (id * 2)) | (0b1111 << (id * 4 + 16)); 
     auto masked = control & ~clear_mask;
     regs.write_by_id(sdb::register_id::dr7, masked);
+}
+
+/* this handles trap reason stop */
+void sdb::Process::augment_stop_reason(sdb::stop_reason& reason) {
+    siginfo_t info;
+    if (ptrace(PTRACE_GETSIGINFO, pid_, nullptr, &info) < 0) {
+        error::send_errno("Failed to get signal info");
+    }
+
+    // a SIGTRAP from a syscall => fill up syscall_info here
+    if (reason.info == (SIGTRAP | 0x80)) {
+        auto& sys_info = reason.syscall_info.emplace();
+        auto &regs = get_registers();
+
+        //expecting a syscall exit
+        if (expecting_syscall_exit_) {
+            sys_info.entry = false;
+
+            //return value of a syscall gets stored in rax
+            sys_info.ret = regs.read_by_id_as<std::uint64_t>(sdb::register_id::rax);
+            sys_info.id = regs.read_by_id_as<std::uint64_t>(sdb::register_id::orig_rax);
+
+            expecting_syscall_exit_ = false;
+        } else {
+            //in a syscall entry
+            sys_info.entry = true;
+            sys_info.id = regs.read_by_id_as<std::uint64_t>(sdb::register_id::orig_rax);
+
+            std::array<sdb::register_id, 6> args_reg =  {
+                sdb::register_id::rdi, sdb::register_id::rsi, sdb::register_id::rdx,
+                sdb::register_id::r10, sdb::register_id::r8, sdb::register_id::r9
+            };
+
+            for (auto i = 0; i < 6; ++i) {
+                sys_info.args[i] = regs.read_by_id_as<std::uint64_t>(args_reg[i]);
+            }
+
+            expecting_syscall_exit_ = true;
+        }
+
+
+        reason.info = SIGTRAP; 
+        reason.trap_reason = sdb::trap_type::syscall;
+        return;
+    }
+
+    expecting_syscall_exit_ = false; //didn't stop from a syscall
+
+    reason.trap_reason = sdb::trap_type::unknown;
+    if (reason.info == SIGTRAP) {
+        switch (info.si_code) {
+            case TRAP_TRACE:
+                reason.trap_reason = sdb::trap_type::single_step;
+                break;
+            case SI_KERNEL:
+                reason.trap_reason = sdb::trap_type::software_break;
+                break;
+            case TRAP_HWBKPT:
+                reason.trap_reason = sdb::trap_type::hardware_break;
+                break;
+        }
+
+    }
+}
+
+std::variant<sdb::breakpoint_site::id_type, sdb::watchpoint_site::id_type>
+sdb::Process::get_current_hardware_stoppoint() const {
+    auto &regs = get_registers();
+    auto status = regs.read_by_id_as<std::uint64_t>(sdb::register_id::dr6);
+
+    /* finds the number of trailing 0-bits in dr6 */
+    int index = __builtin_ctzll(status) ;
+
+    auto id = static_cast<int>(sdb::register_id::dr0) + index;
+
+    //read the address stored at the specified debug registers - from dr0 to dr3
+    auto addr = sdb::virt_addr(regs.read_by_id_as<std::uint64_t>(static_cast<sdb::register_id>(id)));
+
+    //alias
+    using ret = std::variant<sdb::breakpoint_site::id_type, sdb::watchpoint_site::id_type>;
+
+    //if it exists within breakpoint sites, returns the id of the breakpoint site
+    if (breakpoint_sites_.contains_address(addr)) {
+        auto bp = breakpoint_sites_.get_by_address(addr).id();
+        
+        //set the type of index 0 to be 
+        return ret { std::in_place_index<0>, bp};
+    } else {
+        //this must be a watchpoint since no breakpoints exist but we are still at a stoppoint
+        auto watch = watchpoints_.get_by_address(addr).id();
+        return ret { std::in_place_index<1>, watch};
+    }
+}
+
+sdb::stop_reason sdb::Process::maybe_resume_from_syscall(const stop_reason& reason) {
+    
+
+    if (syscall_catch_policy_.get_mode() == sdb::syscall_catch_policy::mode::some) {
+        auto to_catch = syscall_catch_policy_.get_to_catch();
+
+        auto found = std::find(to_catch.begin(), to_catch.end(), reason.syscall_info->id);
+
+        /* current signal is not in the list so go through the next set of syscalls and determine them */
+        if (found == end(to_catch)) {
+            resume();
+            return wait_on_signal();
+        }
+    }
+
+    /* syscall_catch_policy is none so we are not tracing any syscalls*/
+    return reason;
 }
 

@@ -1,6 +1,7 @@
 #include <libsdb/watchpoint.hpp>
 #include <libsdb/process.hpp>
 #include <libsdb/error.hpp>
+#include <utility>
 
 namespace {
 
@@ -19,6 +20,7 @@ sdb::watchpoint_site::watchpoint_site(Process & proc, virt_addr address,
         }
 
         id_ = get_next_id();
+        update_data();
 } 
 
 void sdb::watchpoint_site::enable() {
@@ -30,11 +32,20 @@ void sdb::watchpoint_site::enable() {
     is_enabled_ = true;
 }
 
-void sdb::watchpoint::disable() {
+void sdb::watchpoint_site::disable() {
     if (!is_enabled_) {
         return;
     }
 
     process_->clear_hardware_stoppoint(hardware_register_index_);
     is_enabled_ = false;
+}
+
+void sdb::watchpoint_site::update_data() {
+    std::uint64_t new_data = 0;
+    auto read = process_->read_memory(address_, size_);
+    memcpy(&new_data, read.data(), size_);
+
+    //assigns new_data to data, then returns data and assign to previous_data
+    previous_data_ = std::exchange(data_, new_data);
 }

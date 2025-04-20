@@ -17,6 +17,7 @@
 #include <libsdb/stoppoint_collection.hpp>
 #include <libsdb/types.hpp>
 #include <libsdb/bits.hpp>
+#include <variant>
 
 /* organize my code inside to avoid conflicts, in this case code for sdb */
 namespace sdb 
@@ -31,16 +32,81 @@ namespace sdb
         terminated
     };
 
+    //hold types of breakpoints
+    enum class trap_type
+    {
+        single_step,
+        software_break,
+        hardware_break,
+        syscall,
+        unknown
+    };
+
+    struct syscall_info {
+        /* syscall number */
+        std::uint16_t id;
+
+        /* tracks entering or leaving syscall */
+        bool entry; 
+        union {
+            /* arguments to syscall */
+            std::array<std::int64_t, 6> args; 
+            std::int64_t ret; //return code
+        };
+    };
+
+
+    /* holds the reason for why the process stops */
     struct stop_reason 
     {
         /* a struct has similar characteristics to a class in C++ */
         stop_reason(int wait_status); /* reason for a stop - return value of the xit or the signal that caused the stop/termination */
+        std::optional<trap_type> trap_reason; //if the stop occurs due to SIGTRAP
 
+        std::optional<sdb::syscall_info> syscall_info;
         process_state reason; /* holds the reason for a stop */
         std::uint8_t info;
 
     };
     /* wraps around an inferior/tracee process, storing its PID */
+
+    /* tracks which syscalls we are tracing*/
+    class syscall_catch_policy {
+        public:
+            enum mode {
+                none, 
+                some, 
+                all
+            };
+            
+            static syscall_catch_policy catch_all() {
+                return {mode::all, {}};
+            }
+    
+            static syscall_catch_policy catch_none () {
+                return {mode::none, {}};
+            }
+    
+            static syscall_catch_policy catch_some(std::vector<int> to_catch) {
+                return {mode::some, to_catch};
+            }
+    
+            mode get_mode() { return mode_; }
+    
+            /* returns the reference to reduce copies */
+            const std::vector<int>& get_to_catch() const { return to_catch_;}
+                
+    
+        private:
+            syscall_catch_policy(mode mode, std::vector<int> to_catch) 
+                : mode_(mode), to_catch_(std::move(to_catch)) {}    
+    
+            mode mode_ = mode::none; /* default is catching no syscall */
+    
+           /* list the syscalls we need to catch in case mode is some */
+            std::vector<int> to_catch_;
+    };  
+    
     class Process 
     {
         public:
@@ -73,6 +139,11 @@ namespace sdb
 
             /* class member functions */
             void resume();
+
+            /*
+            * Checks if the tracee process has changed state to stopped
+            * Returns a reason why the tracee process halts to a stop
+            */
             stop_reason wait_on_signal();
             ~Process();
 
@@ -103,10 +174,10 @@ namespace sdb
             const stoppoint_collection<breakpoint_site>&
             breakpoint_sites() const {return breakpoint_sites_; }
 
-            stoppoint_collection<breakpoint_site>&
+            stoppoint_collection<watchpoint_site>&
             watchpoint_sites() { return watchpoints_; }
 
-            const stoppoint_collection<breakpoint_site>&
+            const stoppoint_collection<watchpoint_site>&
             watchpoint_sites() const {return watchpoints_; }
 
             /* get the program counter */
@@ -130,6 +201,7 @@ namespace sdb
             * Read sections of memory from a virtual address of an inferior/tracee process
             * @param address address to read from
             * @param amount  bytes of memory to read from
+            * Returns a std::vector containing bytes of data read at that address
             */
             std::vector<std::byte> read_memory(sdb::virt_addr address, size_t amount) const;
 
@@ -155,19 +227,30 @@ namespace sdb
             * @param address    address to set breakpoint at
             * Return the index with a free DR register
             */
-            int set_hardware_breakpoint(breakpoint_site::id_type id, virt_addr address); 
+            int set_hardware_breakpoint(watchpoint_site::id_type id, virt_addr address); 
 
             /*
             * Set watchpoints
             *
             */
-            int set_watchpoint(breakpoint_site::id_type id, virt_addr address, sdb::stoppoint_mode mode, std::size_t size);
+            int set_watchpoint(watchpoint_site::id_type id, virt_addr address, sdb::stoppoint_mode mode, std::size_t size);
             /* 
             * Clear the hardware stoppoint
-            * @param index DR register index
+            * @ param index DR register index
             * Return void
             */
             void clear_hardware_stoppoint(int index);
+
+            /* find the hardware stoppoint that caused the process to trap 
+            * returns a variant object of breakpoint_site::id_type or watchpoint_site::id_type, with the stoppoint id
+            */
+            std::variant<sdb::breakpoint_site::id_type, sdb::watchpoint_site::id_type>
+            get_current_hardware_stoppoint() const;
+
+            /* sets the current policy of the tracee */
+            void set_syscall_catch_policy(syscall_catch_policy info) {
+                syscall_catch_policy_ = std::move(info);
+            }
 
 
         private:
@@ -175,6 +258,13 @@ namespace sdb
             bool terminate_on_end_ = true; /* track termination */
             process_state state_ = process_state::stopped;
             bool is_attached_ = true;
+
+            /* stopped from syscall entry or exit */
+            bool expecting_syscall_exit_ = false; 
+
+            /* tracee should trace syscalls or not */
+            syscall_catch_policy syscall_catch_policy_ = 
+                syscall_catch_policy::catch_none();
 
             /* Process constructor for use by factory methods
             * @param pid              process id 
@@ -215,7 +305,20 @@ namespace sdb
             * @param size       size of the hardware breakpoints
             */
             int set_hardware_stoppoint(virt_addr address, sdb::stoppoint_mode mode, std::size_t size);
+
+            /*
+            * Called when the process stopped because of a SIGTRAP. Defines the context of the SIGTRAP
+            */
+            void augment_stop_reason(stop_reason& reason);
+
+            /* 
+            * Resume the process if current stopped syscall isn't the one requested for tracing
+            * Checks if a syscall is in the list of requested syscall for tracing or not
+            */
+            sdb::stop_reason maybe_resume_from_syscall(const stop_reason& reason);
     };
+
+
     
 
 }

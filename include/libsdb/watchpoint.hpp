@@ -19,10 +19,12 @@ namespace sdb{
 
             using id_type = std::int32_t; /* unique identifier for breakpoint types */
             id_type id() const { return id_;}
+
+            /* get functions */
             bool is_enabled() const { return is_enabled_;}
-            bool is_internal() const { return is_internal_;}
-            bool is_hardware() const {return is_hardware_;}
             virt_addr address () const { return address_;}
+            stoppoint_mode mode() const { return mode_;}
+            std::size_t size() const { return size_;}
 
             /* enable and disable watchpoints */
             void enable();
@@ -37,8 +39,15 @@ namespace sdb{
             bool in_range(virt_addr low, virt_addr high) const {
                 return low <= address_ and high > address_;
             }
+
+            /* dealing with watchpoint data */
+            std::uint64_t data() const { return data_;} 
+            std::uint64_t previous_data() const { return previous_data_;} 
+
+            /* re-reads the value at the watched memory location and updates data and previous data  */
+            void update_data();
         private:
-            friend Process;//grants sdb::Process special access
+            friend Process;
 
             watchpoint_site(Process & proc, virt_addr address,
                             sdb::stoppoint_mode mode, size_t size);
@@ -51,6 +60,8 @@ namespace sdb{
             bool is_enabled_;
             int hardware_register_index_ = -1; 
 
+            std::uint64_t data_ = 0; //current value at read address
+            std::uint64_t previous_data_ = 0; //previously read value
     };
 }
 #endif

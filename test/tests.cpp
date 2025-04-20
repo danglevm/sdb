@@ -504,7 +504,7 @@ TEST_CASE("Hardware breakpoint evades checkpoints", "[breakpoint]") {
     REQUIRE(to_string_view(channel.read()) == "You just got bamboozled! You bimbo\n");
 }
 
-TEST_CASE("Watchpoint detects reads", "[breakpoint]") {
+TEST_CASE("Watchpoint detects reads", "[watchpoint]") {
     bool close_on_exec = false;
     sdb::pipe channel(close_on_exec);
 
@@ -517,7 +517,8 @@ TEST_CASE("Watchpoint detects reads", "[breakpoint]") {
     //read an_innocent_function address from the pipe
     auto func = virt_addr(from_bytes<std::uint64_t>(channel.read().data()));
 
-    auto &watch = create_watchpoint(func, execution , 1);
+    auto &watch = proc->create_watchpoint(func, sdb::stoppoint_mode::read_write , 1);
+    watch.enable();
 
     proc->resume();
     proc->wait_on_signal();
@@ -527,7 +528,8 @@ TEST_CASE("Watchpoint detects reads", "[breakpoint]") {
     soft.enable();
 
     proc->resume();
-    proc->wait_on_signal();
+    auto reason = proc->wait_on_signal();
+
     REQUIRE(reason.info == SIGTRAP);
 
     proc->resume();

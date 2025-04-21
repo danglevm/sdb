@@ -663,6 +663,44 @@ namespace
             }
 
         }
+    
+
+    /*** HANDLING SYSCALL CATCHPOINTS ***/
+    void handle_syscall_catchpoint_command(sdb::Process& process, const std::vector<std::string> args) {
+        sdb::syscall_catch_policy policy = sdb::syscall_catch_policy::catch_all();
+
+        if (args.size() == 3 and args[2] == "none") {
+            policy = sdb::syscall_catch_policy::catch_none();
+
+            /* user wants to trace certain syscalls */
+        } else if (args.size() >= 3) {
+            //returns vector of string
+            auto syscalls = split(args[2], ",");
+            std::vector<int> to_catch;
+
+            //back inserter enables std::transform to directly put the result from lambda call into the to catch
+            std::transform(begin(syscalls), end(syscalls), 
+                        std::back_inserter(to_catch), [](auto & syscall)-> int {
+                            //if the argument starts with a digit, it's a syscall number, otherwise it's a name
+                            return isdigit(syscall[0]) ? sdb::to_integral<int>(syscall).value() :
+                                                        sdb::name_to_syscall_id(syscall);
+                        });
+            policy = sdb::syscall_catch_policy::catch_some(std::move(to_catch));
+        }
+    }
+
+    void handle_catchpoint_command(sdb::Process& process, const std::vector<std::string>& args) {
+        if (args.size() < 2) {
+            print_help({"help", "catchpoint"});
+            return;
+        }
+
+        if (is_prefix(args[1], "syscall")) {
+            handle_syscall_catchpoint_command(process, args);
+        }
+    }
+
+
 
     void handle_stop(sdb::Process& process, sdb::stop_reason& reason) {
         print_stop_reason(process, reason);
@@ -719,6 +757,8 @@ namespace
         }
         else if (is_prefix(command, "watchpoint")) {
             handle_watchpoint_command(*process, args);
+        } else if (is_prefix(command, "catchpoint")) {
+            handle_catchpoint_command(*process, args);
         }
 
         else {

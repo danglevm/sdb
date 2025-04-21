@@ -689,7 +689,7 @@ sdb::stop_reason sdb::Process::maybe_resume_from_syscall(const stop_reason& reas
     if (syscall_catch_policy_.get_mode() == sdb::syscall_catch_policy::mode::some) {
         auto to_catch = syscall_catch_policy_.get_to_catch();
 
-        auto found = std::find(to_catch.begin(), to_catch.end(), reason.syscall_info->id);
+        auto found = std::find(begin(to_catch), end(to_catch), reason.syscall_info->id);
 
         /* current signal is not in the list so go through the next set of syscalls and determine them */
         if (found == end(to_catch)) {

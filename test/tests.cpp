@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <libsdb/error.hpp>
 #include <libsdb/register_info.hpp>
+#include <libsdb/syscalls.hpp>
 #include <fstream>
 #include <iostream>
 #include <elf.h>
@@ -536,4 +537,11 @@ TEST_CASE("Watchpoint detects reads", "[watchpoint]") {
     proc->wait_on_signal();
 
     REQUIRE(to_string_view(channel.read()) == "You just got bamboozled! You bimbo\n");
+}
+
+TEST_CASE("Syscall mapping works", "[syscall]") {
+    REQUIRE(sdb::syscall_id_to_name(0) == "read");
+    REQUIRE(sdb::name_to_syscall_id("read") == 0);
+    REQUIRE(sdb::syscall_id_to_name(62) == "kill");
+    REQUIRE(sdb::name_to_syscall_id("kill") == 62);
 }

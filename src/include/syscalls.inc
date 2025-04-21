@@ -1,3 +1,8 @@
+#ifndef DEFINE_SYSCALL
+#error "This file is intened for textual inclusion with the\
+DEFINE_SYSCALL macro defined"
+#endif
+
 DEFINE_SYSCALL(read,0)
 DEFINE_SYSCALL(write,1)
 DEFINE_SYSCALL(open,2)

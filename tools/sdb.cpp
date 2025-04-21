@@ -54,7 +54,7 @@ namespace
         }
     }
 
-    /* utility functions */
+    /* UTILITY FUNCTIONS */
 
     /* gets debug information if process is stopped from SIGTRAP */
     std::string get_sigtrap_info(const sdb::Process& process, sdb::stop_reason reason) {
@@ -84,7 +84,24 @@ namespace
                                         point.previous_data(), point.data());
             }
             return message;
-        } else if (reason.trap_reason == sdb::trap_type::single_step) {
+        }
+        else if (reason.trap_reason == sdb::trap_type::syscall) {
+            const auto& info = *(reason.syscall_info);
+            std::string message;
+
+            /* entry event */
+            if (info.entry) {
+                message += fmt::format("syscall entry");
+                message += fmt::format("syscall {} {:#x}: ", sdb::syscall_id_to_name(info.id),
+                                        fmt::join(info.args, ","));
+            } else {
+                /* exit event */
+                message += fmt::format("syscall exit");
+                message += fmt::format("syscall returned: {:#x}", info.ret);
+            }
+        } 
+        
+        else if (reason.trap_reason == sdb::trap_type::single_step) {
             return "(single step)";
         }
 
@@ -153,59 +170,66 @@ namespace
     void print_help(const std::vector<std::string> & args)  {
         if (args.size() == 1) {
             std::cerr << R"(Available commands:
-            breakpoint  - Commands for operating on breakpoints
-            watchpoint  - Commands for operating on watchpoints
-            continue    - Resume the process
-            memory      - Commands for operating on memory
-            disassemble - Disassemble machine code to assembly
-            register    - Commands for operating on registers
-            step        - Step over a single instruction
+        breakpoint  - Commands for operating on breakpoints
+        watchpoint  - Commands for operating on watchpoints
+        catchpoint  - Commands for operating on catchpoints
+        continue    - Resume the process
+        memory      - Commands for operating on memory
+        disassemble - Disassemble machine code to assembly
+        register    - Commands for operating on registers
+        step        - Step over a single instruction
     )";
         
         } else if (is_prefix(args[1], "memory")) {
             std::cerr << R"(Available commands:
-            read <address> - default is 32 bytes
-            read <address> <number of bytes> 
-            write <address> <bytes>
+        read <address> - default is 32 bytes
+        read <address> <number of bytes> 
+        write <address> <bytes>
     )";
         /* handles registers */
         } else if (is_prefix(args[1], "register")) {
             std::cerr << R"(Available commands:
-            read
-            read <register>
-            read all
-            write <register> <value>
+        read
+        read <register>
+        read all
+        write <register> <value>
     )" << "\n";
         } else if (is_prefix(args[1], "breakpoint")) {
             std::cerr << R"(Available commands:
-            list
-            delete  <id>
-            disable <id>
-            enable  <id>
-            set <address>
-            set <address> -h
+        list
+        delete  <id>
+        disable <id>
+        enable  <id>
+        set <address>
+        set <address> -h
     )";
         } else if (is_prefix(args[1], "watchpoint")) {
             std::cerr << R"(Available commands:
-            list
-            delete  <id>
-            disable <id>
-            enable  <id>
-            set <address>
-            set <address> <write|rw|execute> <size in byte>
+        list
+        delete  <id>
+        disable <id>
+        enable  <id>
+        set <address>
+        set <address> <write|rw|execute> <size in byte>
     )";
         } else if (is_prefix(args[1], "step")) {
             std::cerr << R"(Available commands:
-            breakpoint - Commands for operating on breakpoints
-            continue - Resume the process
-            register - Commands for operating on registers
-            step - Step over a single instruction
+        breakpoint - Commands for operating on breakpoints
+        continue - Resume the process
+        register - Commands for operating on registers
+        step - Step over a single instruction
     )";
         }
         else if (is_prefix(args[1], "disassemble")) {
             std::cerr << R"(Available options:
-            -c <number of instructions>
-            -a <starting address>
+        -c <number of instructions>
+        -a <starting address>
+    )";
+        } else if (is_prefix(args[1], "catchpoint")) {
+            std::cerr << R"(Available commands:
+        syscall
+        syscall none
+        syscall <list of syscall IDs or names separated by space>
     )";
         }
         

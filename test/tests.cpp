@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <string>
 #include <sys/types.h>
 #include <signal.h>
@@ -52,7 +53,7 @@ namespace {
                     //offset of this section in the ELF file
                     auto size = std::stol(groups[3], nullptr, 16);
 
-                    /* file address lies in this section */
+                    /* check if the address lies at this section of the file address */
                     if (address <= file_address and file_address < (address + size)) {
                         /* clean up and return section load bias */
                         free(line);
@@ -544,4 +545,35 @@ TEST_CASE("Syscall mapping works", "[syscall]") {
     REQUIRE(sdb::name_to_syscall_id("read") == 0);
     REQUIRE(sdb::syscall_id_to_name(62) == "kill");
     REQUIRE(sdb::name_to_syscall_id("kill") == 62);
+}
+
+TEST_CASE("Syscall catchpoint works", "[catchpoint]") {
+    /* our program doesn't pollute the rest */
+    auto null_fd = open("/dev/null", O_WRONLY);
+    auto proc = Process::launch("targets/anti_debugger", true, null_fd);
+
+    auto write_id = sdb::name_to_syscall_id("write");
+    auto policy = sdb::syscall_catch_policy::catch_some({write_id});
+    proc->set_syscall_catch_policy(policy);
+
+    proc->resume();
+    auto reason = proc->wait_on_signal();
+
+    REQUIRE(reason.reason == sdb::process_state::stopped);
+    REQUIRE(reason.info == SIGTRAP);
+    REQUIRE(reason.trap_reason == sdb::trap_type::syscall);
+    REQUIRE(reason.syscall_info->id == write_id);
+    REQUIRE(reason.syscall_info->entry == true);
+
+    proc->resume();
+    reason = proc->wait_on_signal();
+
+    REQUIRE(reason.reason == sdb::process_state::stopped);
+    REQUIRE(reason.info == SIGTRAP);
+    REQUIRE(reason.trap_reason == sdb::trap_type::syscall);
+    REQUIRE(reason.syscall_info->id == write_id);
+    REQUIRE(reason.syscall_info->entry == false);
+
+
+    close(null_fd);
 }

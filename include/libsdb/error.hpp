@@ -9,7 +9,8 @@ namespace sdb
     class error : public std::runtime_error 
     {
         public: 
-            /* functions that throw exceptions don't return the control flow to the caller */
+            /* functions that throw exceptions don't return control flow to  caller */
+            /* when this function is called, it will terminate upon being called */
             [[noreturn]] static void send(const std::string& what) { 
                 throw error(what); 
             }

@@ -12,7 +12,8 @@ namespace {
     };
 
 }
-int name_to_syscall_id(std::string_view name) {
+
+int sdb::name_to_syscall_id(std::string_view name) {
     /* could use .find() but do 1 for precision */
     if (g_syscall_name_map.count(name) != 1) {
         sdb::error::send("No such syscall");
@@ -23,7 +24,7 @@ int name_to_syscall_id(std::string_view name) {
 /* converting syscall ids to names */
 std::string_view sdb::syscall_id_to_name(int id) {
     switch(id) {
-        #define DEFINE_SYSCALL(name,id) case id: return #name
+        #define DEFINE_SYSCALL(name,id) case id: return #name;
         #include "include/syscalls.inc"
         #undef DEFINE_SYSCALL
     default: sdb::error::send("No such syscall");

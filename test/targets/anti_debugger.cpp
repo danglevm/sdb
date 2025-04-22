@@ -15,6 +15,7 @@ void an_innocent_function_end() {}
 ;// also very dangerous way to do things, don't do this if you don't need to
 int checksum() {
     //bytes of function should not change and also not be optimized by compilers
+    //function should be stored as bytes and volatile
     auto start= reinterpret_cast<volatile const char *>(&an_innocent_function);
     auto end = reinterpret_cast<volatile const char *>(&an_innocent_function_end);
 

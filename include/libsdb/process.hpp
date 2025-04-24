@@ -252,6 +252,7 @@ namespace sdb
                 syscall_catch_policy_ = std::move(info);
             }
 
+            std::unordered_map<int, std::uint64_t> get_aux_vect() const;
 
         private:
             pid_t pid_ = 0; //pid of inferior process

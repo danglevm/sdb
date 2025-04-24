@@ -22,6 +22,7 @@ namespace {
         return (ret != -1 and errno != ESRCH);
     };
 
+    /* temporary measure to get process status and id at /proc/stat */
     char get_process_status(pid_t pid) {
         /* open process file for reading */
         std::ifstream stat("/proc/" + std::to_string(pid) + "/stat");
@@ -32,7 +33,7 @@ namespace {
         return data[index_of_status_indicator];
     }
 
-    /* getting load bias for a ELF section */
+    /* getting load bias for a ELF section - temporary measure */
     std::int64_t get_section_load_bias(
         std::filesystem::path path, Elf64_Addr file_address) {
             auto command = std::string("readelf -WS ") + path.string();

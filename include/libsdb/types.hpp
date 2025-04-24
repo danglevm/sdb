@@ -5,9 +5,13 @@
 #include <cstdint>
 #include <array>
 #include <vector>
-#include <libsdb/types.hpp>
+#include <cassert>
 
 namespace sdb {
+
+    class file_addr;
+    class elf;
+
 
     enum class stoppoint_mode{ 
         write,
@@ -45,12 +49,13 @@ namespace sdb {
             /* disallow implicit conversions */
             explicit virt_addr(std::uint64_t addr) : addr_(addr) {}
 
-            std::uint64_t addr() const {
-                return addr_;
-            }
+            std::uint64_t addr() const { return addr_; }
+
+            file_addr convert_to_file_addr(const elf& obj) const;
 
             /* operators to overload - change by a certain offset */
             /* doing virt_addr = base + 0x200 would shift it by that much. Takes the value addr_ of base */
+            //create a new object for assignment
             virt_addr operator+(std::int64_t offset) const {
                 return virt_addr(addr_ + offset);
             }
@@ -95,12 +100,98 @@ namespace sdb {
                 return addr_ <= other.addr_;
             }
 
+            file_addr converstion_to_file_addr(const elf& obj) const;
+
         private:
             std::uint64_t addr_= 0;
     };
 
+    /* Stores ELF file addresses and routines for translating between virtual and file addresses */
+    class file_addr {
+        public:
+            file_addr() = default;
+            explicit file_addr(std::uint64_t addr, const elf& elf) : addr_(addr), elf_(&elf) {}
+
+            const elf* get_elf_file() const { return elf_; } 
+            std::uint64_t addr() const { return addr_; }
+
+            /* convert stored address to virtual address with load bias */
+            /* compute real virtual address */
+            virt_addr convert_to_virt_addr() const;
+
+            /* file address operator overloads */
+            file_addr operator+(std::int64_t offset) const {
+                return file_addr(addr_ + offset, *elf_);
+            }
+
+            file_addr operator-(std::int64_t offset) const {
+                return file_addr(addr_ - offset, *elf_);
+            }
+
+            /* not returning a new object but modify so no const */
+            file_addr& operator+=(std::int64_t offset) {
+                addr_ += offset;
+                return *this; //allows chaining assignment
+            }
+
+            file_addr& operator-=(std::int64_t offset) {
+                addr_ -= offset;
+                return *this; //allows chaining assignment
+            }
+
+            /* comparison operator */
+            bool operator==(const file_addr& other) const {
+                return addr_ == other.addr_ && elf_ == other.elf_;
+            }
+
+            bool operator!=(const file_addr& other) const {
+                return addr_ != other.addr_ && elf_ == other.elf_;
+            }
+
+            bool operator>(const file_addr& other) const {
+                assert(elf_ == other.elf_);
+                return addr_ > other.addr_;
+            }
+
+            bool operator>=(const file_addr& other) const {
+                assert(elf_ == other.elf_);
+                return addr_ >= other.addr_;
+            }
+
+            bool operator<(const file_addr& other) const {
+                assert(elf_ == other.elf_);
+                return addr_ < other.addr_;
+            }
+
+            bool operator<=(const file_addr& other) const {
+                assert(elf_ == other.elf_);
+                return addr_ <= other.addr_;
+            }
+        private:
+            std::uint64_t addr_ = 0;
+            /* pointer to ELF file */
+            const elf* elf_ = nullptr;
+    };
+
+    /* Stores ELF file offset and routines for translating between virtual and file offset */
+    class file_offset {
+        public:
+            file_offset() = default;
+
+            file_offset(std::uint64_t off, const elf& elf) : off_(off), elf_(&elf) {}
+
+            const elf* get_elf_file() const { return elf_; } 
+            std::uint64_t off() const { return off_; }
+
+        private:
+            std::uint64_t off_ = 0;
+            /* pointer to ELF file */
+            const elf* elf_ = nullptr;
+    };  
+
     /* represents an existing region of memory */
     /* wrapper around general memory allocation regions */
+    /* this is similar to the C++20 implementation, but we are doing C++ 17 */
     template<typename T>
     class span {
         public:

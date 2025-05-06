@@ -10,6 +10,7 @@
 #include <libsdb/error.hpp>
 #include <libsdb/register_info.hpp>
 #include <libsdb/syscalls.hpp>
+#include <libsdb/target.hpp>
 #include <fstream>
 #include <iostream>
 #include <elf.h>
@@ -577,4 +578,31 @@ TEST_CASE("Syscall catchpoint works", "[catchpoint]") {
 
 
     close(null_fd);
+}
+
+TEST_CASE("ELF parser", "[elf]") {
+    auto path = "targets/hello_sdb";
+    sdb::elf elf(path);
+    auto entry = elf.header().e_entry;
+
+    //ensure entry point offset is the _start symbol
+    REQUIRE(entry == get_entry_point_offset(path));
+
+    auto sym = elf.get_symbol_at_address(file_addr{ entry, elf });
+    std::string name = elf.get_string(sym.value()->st_name);
+    //starting section name
+    REQUIRE(name == "_start");
+
+
+    //if ELF file is loaded at 0xcafecafe, check if entry point offset corresponds to _start function from virtual memory
+    elf.notify_loaded(virt_addr{0xcafecafe});
+    sym = elf.get_symbol_at_address(virt_addr{ 0xcafecafe + entry });
+    name = elf.get_string(sym.value()->st_name);
+    REQUIRE(name == "_start");
+
+    auto syms = elf.get_symbols_by_name("_init");
+
+    //first element in the ELF file
+    name = elf.get_string(syms.at(0)->st_name);
+    REQUIRE(name == "_init");
 }

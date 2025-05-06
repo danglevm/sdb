@@ -18,7 +18,7 @@ namespace sdb {
 
     class elf {
         public:
-            elf(std::filesystem::path& path);
+            elf(const std::filesystem::path& path);
             ~elf();
 
             /* elf objects are unique so we delete copy, copy-assignment, move, copy-move */
@@ -40,7 +40,7 @@ namespace sdb {
             */
             std::string_view get_section_name(std::size_t index) const;
 
-            /* retrieve section names from .strtab or .dynstr
+            /* retrieve section names from .strtab/.dynstr
             * @param index  index to grab the string - e.sh_name
             * Returns a string that starts at an index for the general string table */
             std::string get_string(std::size_t index) const;
@@ -56,7 +56,7 @@ namespace sdb {
 
 
             /*
-            * Handle load bias
+            * Assigns virtual load bias of ELF file to addr 
             */
             void notify_loaded(virt_addr addr) {
                 load_bias_ = addr;
@@ -66,14 +66,14 @@ namespace sdb {
             const Elf64_Shdr* get_section_containing_address(virt_addr addr) const;
             const Elf64_Shdr* get_section_containing_address(file_addr addr) const;
 
-            /* Returns pointer to all symbols that match that name */
+            /* Returns pointer to all symbols matching that name */
             std::vector<const Elf64_Sym*> get_symbols_by_name(std::string_view name) const;
 
             /* Retrieve a symbol at a on-disk file address */
-            std::optional<const Elf64_Sym*> get_symbol_by_address(file_addr addr) const;
+            std::optional<const Elf64_Sym*> get_symbol_at_address(file_addr addr) const;
 
             /* Retrieve a symbol at a virtual address */
-            std::optional<const Elf64_Sym*> get_symbol_by_address(virt_addr addr) const;
+            std::optional<const Elf64_Sym*> get_symbol_at_address(virt_addr addr) const;
             
             /* Retrieve a symbol containing address */
             std::optional<const Elf64_Sym*> get_symbol_containing_address(file_addr addr) const;
@@ -103,7 +103,7 @@ namespace sdb {
             std::vector<Elf64_Sym> symbol_table_;
 
             /* maps names to multiple potential symbol table entries */
-            /* a single name to a range of ELF64 symbols */
+            /* a single name to a range of Elf64 symbols */
             std::unordered_multimap<std::string_view, Elf64_Sym*> 
             symbol_name_map_;
 
@@ -119,11 +119,10 @@ namespace sdb {
 
             void build_symbol_maps();
 
-            /* first is the lower address, second is the higher address */
-            /* maps a single address range to a single symbol - relate a symbol with an address range */
 
             /* takes into account only the start address of the range 
-            * so we can do std::map::find with {address, <some arbitrary address>}
+            * std::pair first points to the lower address range, std::pair second points to higher address range
+            * this is mapped to an according elf64 symbol
             */
             std::map<std::pair<sdb::file_addr, sdb::file_addr>, Elf64_Sym*, range_comparator> 
             symbol_addr_map_;

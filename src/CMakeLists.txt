@@ -14,7 +14,7 @@ install(
 )
 
 
-add_library(libsdb process.cpp pipe.cpp registers.cpp breakpoint_site.cpp disassembler.cpp watchpoint.cpp syscalls.cpp elf.cpp types.cpp) # add the following source code to be compiled as a library
+add_library(libsdb process.cpp pipe.cpp registers.cpp breakpoint_site.cpp disassembler.cpp watchpoint.cpp syscalls.cpp elf.cpp types.cpp target.cpp) # add the following source code to be compiled as a library
 target_link_libraries(libsdb PRIVATE Zydis::Zydis)
 add_library(sdb::libsdb ALIAS libsdb) # use a namespaced library target and give it a new name
 

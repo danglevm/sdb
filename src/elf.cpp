@@ -15,7 +15,7 @@
 
 
 
-sdb::elf::elf(std::filesystem::path& path) {
+sdb::elf::elf(const std::filesystem::path& path) {
 
     this->path_ = path;
 
@@ -45,6 +45,7 @@ sdb::elf::elf(std::filesystem::path& path) {
 
     /* parse the section headers after */
     parse_section_headers();
+    build_section_map();
     parse_symbol_table();
     build_symbol_maps();
 }
@@ -85,8 +86,7 @@ void sdb::elf::parse_symbol_table() {
     }    
 
     auto symtab = *opt_section;
-    auto n_entries = (symtab->sh_size) / (symtab->sh_entsize);
-    symbol_table_.resize(n_entries);
+    symbol_table_.resize(symtab->sh_size / symtab->sh_entsize);
 
     std::copy(file_data_ + symtab->sh_offset, file_data_ + symtab->sh_offset + symtab->sh_size,
         reinterpret_cast<std::byte*> (symbol_table_.data()));
@@ -111,23 +111,25 @@ void sdb::elf::build_section_map() {
 }
 
 void sdb::elf::build_symbol_maps() {
-    for (auto & symbol : symbol_table_) {
+    for (auto& symbol : symbol_table_) {
         auto mangled_name = get_string(symbol.st_name);
-        int mangled_status;
-        auto * demangled_name = abi::__cxa_demangle(mangled_name.data(), nullptr, nullptr, &mangled_status);
-        if (mangled_status == 0) {
+        int demangle_status;
+        auto demangled_name = abi::__cxa_demangle(
+            mangled_name.data(), nullptr, nullptr, &demangle_status);
+        if (demangle_status == 0) {
             symbol_name_map_.insert({demangled_name, &symbol});
             free(demangled_name);
         }
-        symbol_name_map_.insert({mangled_name, &symbol});
+        symbol_name_map_.insert({ mangled_name, &symbol});
 
         /* if the symbol has an address and a name and not thread-local storage */
         if (symbol.st_value != 0 
             && symbol.st_name !=  0 
             && ELF64_ST_TYPE(symbol.st_info) != STT_TLS) {
-                /* add in lower and higher address range */
+                /* add in lowesymbol_table_r and higher address range */
                 auto symbol_addr_range = std::pair(
-                    file_addr{symbol.st_value, *this}, file_addr{symbol.st_value + symbol.st_size, *this});
+                    file_addr{symbol.st_value, *this}, 
+                    file_addr{symbol.st_value + symbol.st_size, *this});
                 symbol_addr_map_.insert({symbol_addr_range, &symbol});
         }
     }
@@ -135,11 +137,12 @@ void sdb::elf::build_symbol_maps() {
 
 
 std::optional<Elf64_Shdr*> sdb::elf::get_section(std::string_view name) const {
-    if (section_map_.count(name) != 0) {
-        return {section_map_.at(name)};
+    if (section_map_.count(name) == 0) {
+        return std::nullopt;
     }
 
-    return std::nullopt;
+    return section_map_.at(name);
+
 }
 
 sdb::span<const std::byte> sdb::elf::get_section_contents(std::string_view name) const {
@@ -202,19 +205,21 @@ std::optional<sdb::file_addr> sdb::elf::get_section_start_address(std::string_vi
     return std::nullopt;
 }
 
-std::vector<const Elf64_Sym*> sdb::elf::get_symbols_by_name(std::string_view name) const {
+std::vector<const Elf64_Sym*> 
+sdb::elf::get_symbols_by_name(std::string_view name) const {
     /* retrieve all symbols associated by a name */
-    auto [begin, end] = symbol_name_map_.equal_range(name);
+    auto my_pair = symbol_name_map_.equal_range(name);
+    auto [begin, end] = my_pair;
     std::vector<const Elf64_Sym*> ret;
 
     //pass this range and apply a series of changes
     std::transform(begin, end, std::back_inserter(ret),
-                    [](auto& pair) { return pair.second;});
+                    [](auto& pair) { return pair.second; });
 
     return ret;
 }
 
-std::optional<const Elf64_Sym*> sdb::elf::get_symbol_by_address(file_addr addr) const {
+std::optional<const Elf64_Sym*> sdb::elf::get_symbol_at_address(file_addr addr) const {
     /* if it's not referring to the same ELF file */
     if (addr.get_elf_file() != this) {
         return std::nullopt;
@@ -225,15 +230,15 @@ std::optional<const Elf64_Sym*> sdb::elf::get_symbol_by_address(file_addr addr) 
     * so we can do std::map::find with {address, <some arbitrary address>}
     */
     auto it = symbol_addr_map_.find({addr, null_addr});
-    if (it != symbol_addr_map_.end()) {
+    if (it == end(symbol_addr_map_)) {
         return std::nullopt;
     }
     /* we only need the symbol which is the second element */
     return it->second;
 }
 
-std::optional<const Elf64_Sym*> sdb::elf::get_symbol_by_address(virt_addr addr) const {
-    return sdb::elf::get_symbol_by_address(addr.convert_to_file_addr(*this));
+std::optional<const Elf64_Sym*> sdb::elf::get_symbol_at_address(virt_addr addr) const {
+    return sdb::elf::get_symbol_at_address(addr.convert_to_file_addr(*this));
 }
 
 
@@ -277,6 +282,6 @@ std::optional<const Elf64_Sym*> sdb::elf::get_symbol_containing_address(file_add
 }
 
 std::optional<const Elf64_Sym*> sdb::elf::get_symbol_containing_address(virt_addr address) const {
-    return get_symbol_containing_address(address.to_file_addr(*this));
+    return get_symbol_containing_address(address.convert_to_file_addr(*this));
 }
 

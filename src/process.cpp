@@ -16,6 +16,8 @@
 #include <cstring>
 #include <sys/personality.h>
 #include <sys/uio.h>
+#include <elf.h>
+#include <fstream>
 
 
 namespace {
@@ -701,4 +703,25 @@ sdb::stop_reason sdb::Process::maybe_resume_from_syscall(const stop_reason& reas
     /* syscall_catch_policy is none so we are not tracing any syscalls*/
     return reason;
 }
+
+std::unordered_map<int, std::uint64_t> sdb::Process::get_aux_vect() const {
+    std::ifstream auxv("/" + std::to_string(pid_) + "/auxv");
+
+    std::unordered_map<int, std::uint64_t> ret;
+    std::uint64_t id, value;
+
+    //capture id and value by reference
+    auto read = [&](auto& input) {
+        //converts uint64_t to an array of chars
+        auxv.read(reinterpret_cast<char*> (&input), sizeof(input));
+    };
+
+    for (read(id); id != AT_NULL; read(id)) {
+        read(value);
+        ret[id] = value;
+    }
+
+    return ret;
+}
+
 

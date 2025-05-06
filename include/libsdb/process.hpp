@@ -18,6 +18,7 @@
 #include <libsdb/types.hpp>
 #include <libsdb/bits.hpp>
 #include <variant>
+#include <unordered_map>
 
 /* organize my code inside to avoid conflicts, in this case code for sdb */
 namespace sdb 
@@ -252,6 +253,7 @@ namespace sdb
                 syscall_catch_policy_ = std::move(info);
             }
 
+            /* retrieve Linux auxiliary vectors */
             std::unordered_map<int, std::uint64_t> get_aux_vect() const;
 
         private:

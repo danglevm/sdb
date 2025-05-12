@@ -24,7 +24,7 @@ namespace sdb {
 
     /* initialized to 0. Up to the size of From to allow cast types smaller than 128/64 bytes */
 
-    /* cast to 64 bits - 16 bytes of value. For MM registers */
+    /* cast a strongly-typed ojbect to 64 bits - 16 bytes of value. For MM registers */
     template<typename From>
     byte64 as_byte64(From from) {
         byte64 To{};

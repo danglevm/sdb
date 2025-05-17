@@ -12,9 +12,12 @@
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 
 namespace {
+
+    /* points to data in .debug_info */
     class cursor {
         public:
             explicit cursor(sdb::span<const std::byte> data)
@@ -103,6 +106,10 @@ namespace {
                 return res;
             }
 
+            /* skip over attributes */
+            /* handles every possible DWARF form */
+            void skip_form(std::uint64_t form);
+
         private:
             /* represents data range being looked at */
             sdb::span<const std::byte> data_;
@@ -114,10 +121,11 @@ namespace {
 
 namespace sdb {
     class elf;
+    class dwarf;
     /* ULEB128 encoding for both fields */
     struct attr_spec {
         std::uint64_t attr;
-        std::uint64_t form;
+        std::uint64_t form; /* specifies attribute's encoding */
     };
 
     struct abbrev {
@@ -127,11 +135,80 @@ namespace sdb {
         std::vector<attr_spec> attr_specs; 
 
     };
-    class dwarf{
+
+    class die;
+    class compile_unit {
+        public:
+            die root() const;
+
+            compile_unit(sdb::dwarf& parent, sdb::span<const std::byte> data, std::size_t abbrev_offset) :
+            parent_(&parent), data_(data), abbrev_offset_(abbrev_offset) {}
+            sdb::span<const std::byte> data() const { return data_;} 
+            const sdb::dwarf* parent() const { return parent_;}
+
+            /* retrieves the abbrev table for this compile unit */
+            const std::unordered_map<std::uint64_t, sdb::abbrev>&
+            abbrev_table() const;
+
+            /* Handling DIEs */
+
+
+        private:
+            sdb::dwarf* parent_;
+            sdb::span<const std::byte> data_; //data stored inside .debug_info about compiled unit
+            std::size_t abbrev_offset_;
+
+    };
+
+    class die {
+        public:
+            /* for null DIEs */
+            /* next points to the next DIE in the section */
+            explicit die(const std::byte * next) : next_(next) {}
+            /* for non-null DIEs*/
+            /*
+            * @param pos        position of the DIE in .debug_info
+            * @param cu         compile unit associated with DIE
+            * @param abbrev     abbreviation entry associated with DIE
+            * @param next       next DIE entry 
+            * @param attr_locs  locations of DIE attributes
+            */
+            die(const std::byte* pos, const compile_unit* cu, const abbrev* abbrev,
+                const std::byte* next, std::vector<const std::byte*> attr_locs) :
+                    pos_(pos),
+                    cu_(cu),
+                    abbrev_(abbrev),
+                    next_(next),
+                    attr_locs_(std::move(attr_locs)) {}
+            
+
+            const compile_unit* cu() const { return cu_; }
+            const abbrev* abbrev_entry() const { return abbrev_; }
+            const std::byte* position() const { return pos_; }
+            const std::byte* next() const { return next_; }
+
+        private:
+            const std::byte* pos_ = nullptr;
+            const compile_unit* cu_ = nullptr;
+            const abbrev* abbrev_ = nullptr;
+            const std::byte* next_ = nullptr;
+            std::vector<const std::byte*> attr_locs_;
+
+    };
+    class dwarf {
         public:
             dwarf(const elf& parent);
             const elf* get_elf() const { return elf_;};
-            const std::unordered_map<std::uint64_t, sdb::abbrev> & get_abbrev_table(std::size_t offset); 
+
+            /*
+            * @param offset offset into .debug_abbrev section 
+            * @return abbreviation table at the offset
+            */
+            const std::unordered_map<std::uint64_t, sdb::abbrev>& 
+            get_abbrev_table(std::size_t offset); 
+
+            const std::vector<std::unique_ptr<sdb::compile_unit>>& 
+            compile_units() const { return compile_units_; }
 
         private:
             const elf* elf_;
@@ -142,7 +219,13 @@ namespace sdb {
             std::unordered_map<std::size_t, 
                 std::unordered_map<std::uint64_t, sdb::abbrev>> abbrev_tables_;
 
+            std::vector<std::unique_ptr<sdb::compile_unit>> compile_units_;
+
     };
+
+
+
+
 }
 
 #endif

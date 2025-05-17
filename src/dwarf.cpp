@@ -1,7 +1,10 @@
 #include <cstdint>
 #include <libsdb/dwarf.hpp>
 #include <libsdb/elf.hpp>
+#include <memory>
+#include <libsdb/error.hpp>
 #include <unordered_map>
+
 
 namespace {
     std::unordered_map<std::uint64_t, sdb::abbrev>
@@ -39,14 +42,104 @@ namespace {
         return ret;
 
     }
+
+    /* parse a single compile unit from .debug_info */
+    std::unique_ptr<sdb::compile_unit> 
+    parse_compile_unit(sdb::dwarf& dwarf, const sdb::elf& obj, cursor cur) {
+        auto start = cur.get_pos();
+        auto size = cur.u32();
+        auto version = cur.u16();
+        auto offset = cur.u32();
+        auto address_size = cur.u8();
+
+        /* we don't support DWARF64 */
+        if(size == 0xffffffff) {
+            sdb::error::send("sdb only supports DWARF32");
+        } 
+
+        if (version != 4) {
+            sdb::error::send("sdb only supports DWARFv4");
+        }
+
+        if (address_size != 8) {
+            sdb::error::send("sdb only supports address size of 8 for DWARF");     
+        }
+
+        size += sizeof(uint32_t);  //account for size of compile unit size field
+        sdb::span<const std::byte> data = {start, size};
+        return std::unique_ptr<sdb::compile_unit>(new sdb::compile_unit(dwarf, data, offset));
+
+    }
+
+    /* store and parse out compile units into vector */
+    std::vector<std::unique_ptr<sdb::compile_unit>> 
+    parse_compile_units(sdb::dwarf& dwarf, const sdb::elf& obj) {
+        cursor cur(obj.get_section_contents(".debug_info"));
+        std::vector<std::unique_ptr<sdb::compile_unit>> units;
+
+        while (!cur.finished()) {
+            auto unit = parse_compile_unit(dwarf, obj, cur);
+            cur += unit->data().size();
+            units.push_back(std::move(unit));
+        }
+
+        return units;
+
+    }
+
+    /* parse out a single DIE */
+    sdb::die parse_die(const sdb::compile_unit& cu, cursor cur) {
+        auto pos = cur.get_pos();
+        auto abbrev_code = cur.uleb128();
+
+        /* null entry - abbrev code of 0 */
+        if (abbrev_code == 0) {
+            auto next = cur.get_pos(); //next DIE is at this position
+            return sdb::die(next);
+        }
+
+        //get abbrev entry associated with this DIE
+        auto& abbrev_table = cu.abbrev_table();
+        auto& abbrev = abbrev_table.at(abbrev_code);
+
+        /* find location of next DIE and pre-compute */
+        std::vector<const std::byte*> attr_locs;
+        attr_locs.reserve(abbrev.attr_specs.size());
+
+        /* save location of attributes and skip over current attribute using form info */
+        for (auto& attr_spec : abbrev.attr_specs) {
+            attr_locs.push_back(cur.get_pos());
+            cur.skip_form(attr_spec.form);
+        }
+
+        auto next = cur.get_pos();
+        return sdb::die(pos, &cu, &abbrev, next, std::move(attr_locs));
+    }
 }
+
+sdb::dwarf::dwarf(const sdb::elf& parent) : elf_(&parent) {
+    compile_units_ = parse_compile_units(*this, parent);
+}
+
 const std::unordered_map<std::uint64_t, sdb::abbrev>& 
 sdb::dwarf::get_abbrev_table(std::size_t offset) {
 
     if (!abbrev_tables_.count(offset)) {
-        //add t nonexistent entry at the requested offset
+        //add non-existent table at the offset
         abbrev_tables_.emplace(offset, parse_abbrev_table(*elf_, offset));
 
     }
     return abbrev_tables_.at(offset);
 }
+
+
+const std::unordered_map<std::uint64_t, sdb::abbrev>&
+sdb::compile_unit::abbrev_table() const {
+    return parent_->get_abbrev_table(abbrev_offset_);
+}
+
+sdb::die sdb::compile_unit::root() const {
+    std::size_t header_size = 11; //compile unit header size
+    cursor cur({data_.begin() + header_size, data_.end()});
+    return parse_die(*this, cur);
+} 

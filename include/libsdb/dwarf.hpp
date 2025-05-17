@@ -11,12 +11,13 @@
 #include <string_view>
 #include <algorithm>
 #include <unordered_map>
+#include <vector>
 
 
 namespace {
     class cursor {
         public:
-            explicit cursor(sdb::span<std::byte> data)
+            explicit cursor(sdb::span<const std::byte> data)
              : data_(data), pos_(data.begin()){}
 
             cursor& operator++() {++pos_; return *this;}
@@ -29,7 +30,7 @@ namespace {
                 return pos_ >= data_.end();
             }
 
-            /* parse fix-width integers at position of cursor */
+            /* parse fix-width integers at position of DWARF cursor */
             template<class T>
             T fixed_int() {
                 auto t = sdb::from_bytes<T>(pos_);
@@ -93,6 +94,12 @@ namespace {
                     shift += 7;
                 } while ((byte & 0x80) != 0);
 
+                /* check if all bits of res (64 bits) are filled and perform 
+                sign extension if 6th bit is 1 - negative number */
+                if ((shift < sizeof(res) * 8) && (byte & 0x40)) {
+                    //fill the remaining starting bits with 1
+                    res |= (~static_cast<std::uint64_t>(0) << shift);
+                }
                 return res;
             }
 
@@ -100,17 +107,30 @@ namespace {
             /* represents data range being looked at */
             sdb::span<const std::byte> data_;
 
-            /* cursor's current position */
+            /* current position of DWARF cursor */
             const std::byte * pos_;
     };
 }
 
 namespace sdb {
     class elf;
+    /* ULEB128 encoding for both fields */
+    struct attr_spec {
+        std::uint64_t attr;
+        std::uint64_t form;
+    };
+
+    struct abbrev {
+        std::uint64_t code; //ULEB 128 reference table code
+        std::uint64_t tag; //ULEB 128 entry tag code
+        bool has_children;
+        std::vector<attr_spec> attr_specs; 
+
+    };
     class dwarf{
         public:
             dwarf(const elf& parent);
-            const elf* elf() const { return elf_;};
+            const elf* get_elf() const { return elf_;};
             const std::unordered_map<std::uint64_t, sdb::abbrev> & get_abbrev_table(std::size_t offset); 
 
         private:

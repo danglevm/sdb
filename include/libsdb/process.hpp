@@ -248,7 +248,7 @@ namespace sdb
             std::variant<sdb::breakpoint_site::id_type, sdb::watchpoint_site::id_type>
             get_current_hardware_stoppoint() const;
 
-            /* sets the current policy of the tracee */
+            /* sets the current policy of catching the syscall of the tracee */
             void set_syscall_catch_policy(syscall_catch_policy info) {
                 syscall_catch_policy_ = std::move(info);
             }

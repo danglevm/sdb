@@ -305,7 +305,7 @@ void sdb::Process::resume()
 
         bp.enable();
     }
-    /* restart stopped TRACEE process */
+    /* restart stopped TRACEE process after we have singled stepped over replaced instruction */
 
     /* change request depending on policy */
     auto request = 

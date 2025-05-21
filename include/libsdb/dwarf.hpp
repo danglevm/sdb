@@ -4,6 +4,7 @@
 #include "types.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <libsdb/elf.hpp>
 #include <libsdb/detail/dwarf.h>
 #include <libsdb/types.hpp>
@@ -13,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <optional>
 
 
 namespace {
@@ -182,10 +184,16 @@ namespace sdb {
                     attr_locs_(std::move(attr_locs)) {}
             
 
+            /* set-get functions */
             const compile_unit* cu() const { return cu_; }
             const abbrev* abbrev_entry() const { return abbrev_; }
             const std::byte* position() const { return pos_; }
             const std::byte* next() const { return next_; }
+
+            /* wrap a DIE and provide iterators to the DIE's children */
+            class children_range;
+            children_range children() const;
+            
 
         private:
             const std::byte* pos_ = nullptr;
@@ -194,6 +202,60 @@ namespace sdb {
             const std::byte* next_ = nullptr;
             std::vector<const std::byte*> attr_locs_;
 
+
+    };
+
+    class die::children_range {
+        public:
+            children_range(die die) : die_(std::move(die)){}
+
+            class iterator {
+                public:
+                    using value_type = die; /* type being iterated over */
+                    using reference = const die&; /* type returned by operator* */
+                    using pointer = const die*; /* type returned by operator-> */
+                    using difference_type = std::ptrdiff_t; /* type returned by subtracting two iterators */
+                    
+                    /* only for moving forward, but support multi-passes */
+                    using iterator_category = std::forward_iterator_tag;
+
+                    iterator() = default;
+                    iterator(const iterator&) = default;
+                    iterator& operator=(const iterator&) = default;
+
+                    explicit iterator(const die& die);
+
+                    const die& operator*() const { return *die_;}
+                    const die& operator->() const { return &die_.value();}
+
+                    bool operator==(const iterator &rhs) const;
+                    bool operator!=(const iterator &rhs) const {
+                        return !(*this==rhs);
+                    }
+
+                    iterator& operator++();
+                    iterator operator++(int);
+
+
+                private:
+                    std::optional<die> die_;
+
+
+            };
+
+            iterator begin() const {
+                if(die_.abbrev_->has_children) {
+                    return iterator{die_};
+                }
+                return end();
+            }
+
+            /* returns empty iterator marking end of storage */
+            iterator end() const {
+                return iterator {};
+            }
+        private:
+            die die_;
     };
     class dwarf {
         public:

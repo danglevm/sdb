@@ -9,6 +9,7 @@
 #include <libsdb/detail/dwarf.h>
 #include <libsdb/types.hpp>
 #include <libsdb/bits.hpp>
+#include <libsdb/error.hpp>
 #include <string_view>
 #include <algorithm>
 #include <unordered_map>
@@ -108,9 +109,69 @@ namespace {
                 return res;
             }
 
-            /* skip over attributes */
             /* handles every possible DWARF form */
-            void skip_form(std::uint64_t form);
+            /* skip past DIE attributes dependent on the size of their forms */
+            void skip_form(std::uint64_t form) {
+                switch (form) {
+                    /* reduces repetition by grouping common cases together */
+                    case DW_FORM_flag_present:
+                        break;
+                    case DW_FORM_data1:
+                    case DW_FORM_ref1:
+                    case DW_FORM_flag:
+                        pos_ += 1; 
+                        break;
+                    case DW_FORM_data2:
+                    case DW_FORM_ref2:
+                        pos_ += 2; 
+                        break;
+                    case DW_FORM_data4:
+                    case DW_FORM_ref4:
+                    case DW_FORM_ref_addr:
+                    case DW_FORM_sec_offset:
+                    case DW_FORM_strp:
+                        pos_ += 4; 
+                        break;
+                    case DW_FORM_data8:
+                    case DW_FORM_addr:
+                        pos_ += 8; 
+                        break;
+                    /* for the cases below parse but don't retrieve the data */
+                    case DW_FORM_sdata:
+                        sleb128(); 
+                        break;
+                    case DW_FORM_udata:
+                    case DW_FORM_ref_udata:
+                        uleb128();  
+                        break;
+                    case DW_FORM_block1:
+                        pos_ += u8();
+                        break;
+                    case DW_FORM_block2:
+                        pos_ += u16();
+                        break;
+                    case DW_FORM_block4:
+                        pos_ += u32();
+                        break;
+                    case DW_FORM_block:
+                    case DW_FORM_exprloc:
+                        pos_ += uleb128();
+                        break;
+                    case DW_FORM_string:
+                        /* iterate until you hit the null terminator */
+                        while (!finished() && *pos_ != std::byte(0)) {
+                            ++pos_;
+                        }
+        
+                        /* go past the null terminator */
+                        ++pos_;
+                        break;
+                    case DW_FORM_indirect:
+                        skip_form(uleb128());
+                        break;
+                    default: sdb::error::send("Unrecognized DWARF form");
+            }
+        };
 
         private:
             /* represents data range being looked at */
@@ -197,14 +258,15 @@ namespace sdb {
 
         private:
             const std::byte* pos_ = nullptr;
-            const compile_unit* cu_ = nullptr;
-            const abbrev* abbrev_ = nullptr;
-            const std::byte* next_ = nullptr;
+            const compile_unit* cu_ = nullptr; //associated compile unit
+            const abbrev* abbrev_ = nullptr; //associated abbreviation block 
+            const std::byte* next_ = nullptr; //points to next die
             std::vector<const std::byte*> attr_locs_;
 
 
     };
 
+    /* stores range of children dies and die tree iteration */
     class die::children_range {
         public:
             children_range(die die) : die_(std::move(die)){}
@@ -226,13 +288,14 @@ namespace sdb {
                     explicit iterator(const die& die);
 
                     const die& operator*() const { return *die_;}
-                    const die& operator->() const { return &die_.value();}
+                    const die* operator->() const { return &die_.value();}
 
                     bool operator==(const iterator &rhs) const;
                     bool operator!=(const iterator &rhs) const {
                         return !(*this==rhs);
                     }
 
+                    /* Pre and post-increment */
                     iterator& operator++();
                     iterator operator++(int);
 

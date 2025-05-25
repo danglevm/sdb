@@ -1,75 +1,12 @@
 #include <cstdint>
+#include <functional>
 #include <libsdb/dwarf.hpp>
 #include <libsdb/elf.hpp>
 #include <memory>
-#include <libsdb/error.hpp>
 #include <unordered_map>
 
 
 namespace {
-    /* skip past DIE attributes dependent on the size of their forms */
-    void skip_form(std::uint64_t form) {
-        switch (form) {
-
-            /* reduces repetition by grouping common cases together */
-            case DW_FORM_flag_present:
-                break;
-            case DW_FORM_data1:
-            case DW_FORM_ref1:
-            case DW_FORM_flag:
-                pos_ += 1; 
-                break;
-            case DW_FORM_data2:
-            case DW_FORM_ref2:
-                pos_ += 2; 
-                break;
-            case DW_FORM_data4:
-            case DW_FORM_ref4:
-            case DW_FORM_ref_addr:
-            case DW_FORM_sec_offset:
-            case DW_FORM_strp:
-                pos_ += 4; 
-                break;
-            case DW_FORM_data8:
-            case DW_FORM_addr:
-                pos_ += 8; 
-                break;
-            /* for the cases below parse but don't retrieve the data */
-            case DW_FORM_sdata:
-                sleb128(); 
-                break;
-            case DW_FORM_udata:
-            case DW_FORM_ref_udata:
-                uleb128();  
-                break;
-            case DW_FORM_block1:
-                pos_ += u8();
-                break;
-            case DW_FORM_block2:
-                pos_ += u16();
-                break;
-            case DW_FORM_block4:
-                pos_ += u32();
-                break;
-            case DW_FORM_block:
-            case DW_FORM_exprloc:
-                pos_ += uleb128();
-                break;
-            case DW_FORM_string:
-                /* iterate until you hit the null terminator */
-                while (!finished() && *pos_ != std::byte(0)) {
-                    ++pos_;
-                }
-
-                /* go past the null terminator */
-                ++pos_;
-                break;
-            case DW_FORM_indirect:
-                skip_form(uleb128());
-                break;
-            default: sdb::error::send("Unrecognized DWARF form");
-        }
-    }
     std::unordered_map<std::uint64_t, sdb::abbrev>
     parse_abbrev_table(const sdb::elf& obj, std::size_t offset) {
         cursor cur(obj.get_section_contents(".debug_abbrev"));
@@ -206,3 +143,31 @@ sdb::die sdb::compile_unit::root() const {
     cursor cur({data_.begin() + header_size, data_.end()});
     return parse_die(*this, cur);
 } 
+
+/************
+* ITERATORS * 
+*************/
+sdb::die::children_range::iterator::iterator(const sdb::die& d) {
+    cursor next_cur({ d.next_, d.cu_->data().end()});
+    die_ = parse_die(*d.cu_, next_cur);
+}
+
+bool sdb::die::children_range::iterator::operator==(const iterator &rhs) const {
+
+        /* no DIE storage or stored DIE has abbrev code of 0 means a null iterator */
+    auto lhs_null = !die_->abbrev_entry() or !die_.has_value();
+    auto rhs_null = !rhs.die_->abbrev_entry() || !rhs.die_.has_value();
+
+    if (lhs_null and rhs_null) {
+        return true;
+    }
+
+    if (lhs_null or rhs_null) {
+        return false;
+    }
+
+    return die_->abbrev_entry() == rhs->abbrev_ and 
+            die_->next() == rhs->next();
+
+
+}

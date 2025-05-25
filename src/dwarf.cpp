@@ -145,7 +145,7 @@ sdb::die sdb::compile_unit::root() const {
 } 
 
 /************
-* ITERATORS * 
+* ITERATOR ** 
 *************/
 sdb::die::children_range::iterator::iterator(const sdb::die& d) {
     cursor next_cur({ d.next_, d.cu_->data().end()});
@@ -154,7 +154,7 @@ sdb::die::children_range::iterator::iterator(const sdb::die& d) {
 
 bool sdb::die::children_range::iterator::operator==(const iterator &rhs) const {
 
-        /* no DIE storage or stored DIE has abbrev code of 0 means a null iterator */
+    /* no DIE storage or stored DIE (has abbrev code of 0) means a null iterator */
     auto lhs_null = !die_->abbrev_entry() or !die_.has_value();
     auto rhs_null = !rhs.die_->abbrev_entry() || !rhs.die_.has_value();
 
@@ -169,5 +169,185 @@ bool sdb::die::children_range::iterator::operator==(const iterator &rhs) const {
     return die_->abbrev_entry() == rhs->abbrev_ and 
             die_->next() == rhs->next();
 
+}
 
+sdb::die::children_range::iterator& 
+sdb::die::children_range::iterator::operator++() {
+    if (!die_->abbrev_entry() or !die_.has_value()) {
+        return *this;
+    }
+
+
+    /* next sibiling is next DIE since there's no children */    
+    if (!die_->abbrev_entry()->has_children) {
+        cursor next_cur({die_->next(), die_->cu()->data().end()});
+
+        die_ = parse_die(*die_->cu(), next_cur);
+    } else {
+        /* iterate over all its children to find the next DIE */
+        iterator it(*die_);
+
+        /* as long as they are non-null */
+        if (it->abbrev_) ++it;
+
+        cursor next_cur({it->next_, die_->cu()->data().end()});
+        die_ = parse_die(*die_->cu(), next_cur);     
+    }
+
+
+    return *this;
+
+}
+
+sdb::die::children_range::iterator
+sdb::die::children_range::iterator::operator++(int) {
+    auto tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+sdb::die::children_range sdb::die::children() const {
+    return children_range(*this);
+}
+
+
+bool sdb::die::contains(std::uint64_t attr) const {
+    auto& specs = this->abbrev_->attr_specs;
+    auto ret = std::find_if(specs.begin(), specs.end(), [=](auto attr_spec) {
+        return attr_spec.attr == attr;
+    });
+
+    return ret != specs.end();
+}
+
+sdb::attr sdb::die::operator[] (std::uint64_t attr) const {
+    auto& specs = this->abbrev_->attr_specs;
+    for (std::size_t i = 0; i < specs.size(); i++) {
+        if (specs[i].attr == attr) {
+            //attr locs ordered similarly to attr specs
+            return { cu_, specs[i].attr, specs[i].form, attr_locs_[i]};
+        }
+    }
+
+    sdb::error::send("Can't find attribute");
+}
+
+/************
+* ATTRIBUTE * 
+*************/
+
+/* we are dealing with x64, so we can read a single 64 bits integer and return that */
+sdb::file_addr sdb::attr::as_address() const {
+    cursor cur({attr_loc_, cu_->data().end()});
+    if (this->form_ != DW_FORM_addr) sdb::error::send("Invalid address type");
+    auto elf = this->cu_->parent()->get_elf();
+    return sdb::file_addr(cur.u64(), *elf);
+}
+
+std::uint32_t sdb::attr::as_section_offset() const {
+    cursor cur({attr_loc_, cu_->data().end()});    
+    if (this->form_ != DW_FORM_sec_offset) sdb::error::send("Invalid address type");
+    return cur.u32();
+}
+
+std::uint64_t sdb::attr::as_int() const {
+    cursor cur({attr_loc_, cu_->data().end()});  
+    switch(form_) {
+        case DW_FORM_data1:
+            return cur.u8();
+        case DW_FORM_data2:
+            return cur.u16();
+        case DW_FORM_data4:
+            return cur.u32();
+        case DW_FORM_data8:
+            return cur.u64();
+        case DW_FORM_udata:
+            return cur.uleb128();
+        default:
+            error::send("Invalid integer type");
+    }
+}
+
+sdb::span<const std::byte> sdb::attr::as_block() const {
+    std::size_t size;
+    cursor cur({attr_loc_, cu_->data().end()});
+    switch(form_) {
+        case DW_FORM_block1:
+            size = cur.u8();
+            break;
+        case DW_FORM_block2:
+            size = cur.u16();
+            break;
+        case DW_FORM_block4:
+            size = cur.u32();
+            break;
+        case DW_FORM_block:
+            size = cur.uleb128();
+            break;
+        default:
+            error::send("Invalid block type");
+    }
+
+    return {cur.get_pos(), size};
+}
+
+sdb::die sdb::attr::as_reference() const {
+    cursor cur({attr_loc_, cu_->data().end()});   
+    std::size_t offset;
+
+    switch(form_) {
+        case DW_FORM_ref1:
+            offset = cur.u8();
+            break;
+        case DW_FORM_ref2:
+            offset = cur.u16();
+            break;
+        case DW_FORM_ref4:
+            offset = cur.u32();
+            break;
+        case DW_FORM_ref8:
+            offset = cur.u64();
+            break;
+        case DW_FORM_ref_udata:
+            offset = cur.uleb128();
+            break;
+        case DW_FORM_ref_addr: {
+            offset = cur.u32();
+            auto section = this->cu_->parent()->get_elf()->get_section_contents(".debug_info");
+            auto die_pos = section.begin() + offset;
+
+            /* find if the DIE we need is in one of*/
+            auto& compile_units = this->cu_->parent()->compile_units();
+            auto cu_finder = [=](auto& cu) {
+                return cu->data().begin() <= die_pos && die_pos < cu->data().end();
+            };
+
+            auto cu_for_offset = std::find_if(compile_units.begin(), compile_units.end(), cu_finder);
+            cursor ref_cur({die_pos, cu_for_offset->get()->data().end()});
+            return parse_die(**cu_for_offset, ref_cur);
+        }
+        default:
+            error::send("Invalid reference type");
+    }
+
+    /* read and parse the DIE at that offset */
+    cursor ref_cur({cu_->data().begin() + offset, cu_->data().end()});
+    return parse_die(*cu_, ref_cur);
+}
+
+std::string_view sdb::attr::as_string() const {
+    cursor cur({attr_loc_, cu_->data().end()});   
+    switch(form_) {
+        case DW_FORM_string:
+            return cur.string();
+        case DW_FORM_strp: {
+            /* find the string in .debug_str */
+            auto offset_bytes = cur.u32();
+            auto string_section = this->cu_->parent()->get_elf()->get_section_contents(".debug_str");
+            cursor string_cur({ string_section.begin() + offset_bytes, string_section.end()});
+            return string_cur.string();
+        }
+        default: 
+            error::send("Invalid reference type");
+    }
 }

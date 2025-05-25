@@ -16,13 +16,14 @@
 #include <vector>
 #include <memory>
 #include <optional>
-
+#include <string_view>
 
 namespace {
 
     /* points to data in .debug_info */
     class cursor {
         public:
+            /* start from a point of data to the end */
             explicit cursor(sdb::span<const std::byte> data)
              : data_(data), pos_(data.begin()){}
 
@@ -37,10 +38,10 @@ namespace {
             }
 
             /* parse fix-width integers at position of DWARF cursor */
+            /* and advance cursor by sizeof(T) amount */
             template<class T>
             T fixed_int() {
                 auto t = sdb::from_bytes<T>(pos_);
-                //advancing cursor
                 pos_ += sizeof(T);
                 return t;
             }
@@ -185,9 +186,14 @@ namespace {
 namespace sdb {
     class elf;
     class dwarf;
+    class die;
+    class compile_unit;
+    class die;
+
+
     /* ULEB128 encoding for both fields */
     struct attr_spec {
-        std::uint64_t attr;
+        std::uint64_t attr; /* value of the attribute */
         std::uint64_t form; /* specifies attribute's encoding */
     };
 
@@ -199,9 +205,44 @@ namespace sdb {
 
     };
 
-    class die;
+    class attr {
+        public:
+            attr(const compile_unit* cu, std::uint64_t type, std::uint64_t form, const std::byte* attr_loc) :
+            cu_(cu), type_(type), form_(form), attr_loc_(attr_loc) {}
+
+            /* get functions */
+            std::uint64_t name() const { return type_; }
+            std::uint64_t form() const { return form_; }
+
+            /* handles retrieving value based on the type of the attribute */
+            
+            /* retrieves value of address DIEs */
+            file_addr as_address() const;
+
+            /* retrieves value of section offset DIEs */
+            std::uint32_t as_section_offset() const;
+
+            /* retrieves value of block DIEs */
+            span<const std::byte> as_block() const;
+            std::uint64_t as_int() const;
+            std::string_view as_string() const;
+            
+            /* parse DIE at that offset */
+            die as_reference() const;
+             
+        private:
+            std::uint64_t type_;
+            std::uint64_t form_;
+
+            //for internal use
+            const compile_unit* cu_;
+            const std::byte* attr_loc_;
+    };
+
+
     class compile_unit {
         public:
+            /* returns the root die - 11 bytes accounted for from header size */
             die root() const;
 
             compile_unit(sdb::dwarf& parent, sdb::span<const std::byte> data, std::size_t abbrev_offset) :
@@ -234,7 +275,7 @@ namespace sdb {
             * @param cu         compile unit associated with DIE
             * @param abbrev     abbreviation entry associated with DIE
             * @param next       next DIE entry 
-            * @param attr_locs  locations of DIE attributes
+            * @param attr_locs  location of DIE attributes in the compile unit
             */
             die(const std::byte* pos, const compile_unit* cu, const abbrev* abbrev,
                 const std::byte* next, std::vector<const std::byte*> attr_locs) :
@@ -245,16 +286,22 @@ namespace sdb {
                     attr_locs_(std::move(attr_locs)) {}
             
 
-            /* set-get functions */
+            /* get functions */
             const compile_unit* cu() const { return cu_; }
             const abbrev* abbrev_entry() const { return abbrev_; }
             const std::byte* position() const { return pos_; }
             const std::byte* next() const { return next_; }
 
-            /* wrap a DIE and provide iterators to the DIE's children */
+            /* wrap a DIE and provide iterator to the DIE's children */
             class children_range;
             children_range children() const;
-            
+
+            /* checks if DIE has an attribute of that type */
+            /* check attribute specifications and find corresponding attribute */
+            bool contains(std::uint64_t attr) const;
+
+            /* retrieves attribute value */
+            attr operator[](std::uint64_t attr) const;
 
         private:
             const std::byte* pos_ = nullptr;
@@ -262,8 +309,6 @@ namespace sdb {
             const abbrev* abbrev_ = nullptr; //associated abbreviation block 
             const std::byte* next_ = nullptr; //points to next die
             std::vector<const std::byte*> attr_locs_;
-
-
     };
 
     /* stores range of children dies and die tree iteration */
@@ -287,17 +332,21 @@ namespace sdb {
 
                     explicit iterator(const die& die);
 
+
+                    /* access wrapped DIE */
                     const die& operator*() const { return *die_;}
                     const die* operator->() const { return &die_.value();}
 
+
+                    /* when we have finished iterating */
                     bool operator==(const iterator &rhs) const;
                     bool operator!=(const iterator &rhs) const {
                         return !(*this==rhs);
                     }
 
-                    /* Pre and post-increment */
-                    iterator& operator++();
-                    iterator operator++(int);
+                    /* advancing to next DIE */
+                    iterator& operator++(); //pre-increment
+                    iterator operator++(int); //post-increment
 
 
                 private:

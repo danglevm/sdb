@@ -181,8 +181,12 @@ sdb::die::children_range::iterator::operator++() {
     /* next sibiling is next DIE since there's no children */    
     if (!die_->abbrev_entry()->has_children) {
         cursor next_cur({die_->next(), die_->cu()->data().end()});
-
         die_ = parse_die(*die_->cu(), next_cur);
+
+    } else if (die_->contains(DW_AT_sibling)) {
+        /* read DIE sibling */
+        die_ = die_.value()[DW_AT_sibling].as_reference(); 
+
     } else {
         /* iterate over all its children to find the next DIE */
         iterator it(*die_);
@@ -351,3 +355,34 @@ std::string_view sdb::attr::as_string() const {
             error::send("Invalid reference type");
     }
 }
+
+/* RETRIEVING VALUES at address attributes */
+sdb::file_addr sdb::die::low_pc() const {
+    return (*this)[DW_AT_low_pc].as_address();
+}
+sdb::file_addr sdb::die::high_pc() const {
+    auto attr = (*this)[DW_AT_high_pc];
+    std::uint64_t addr;
+    if (attr.form() == DW_FORM_addr) {
+        /* high pc as address */
+        addr = attr.as_address().addr();
+    } else {
+        /* high pc as integer offset from low_pc */
+        addr = low_pc().addr() + attr.as_int();
+    } 
+    
+    return sdb::file_addr{addr, *cu_->parent()->get_elf()};
+}
+
+
+/* Iterator for range list */
+sdb::range_list::iterator::iterator(
+    const compile_unit* cu,
+    sdb::span<const std::byte> data,
+    file_addr base_addr) :
+    cu_(cu),
+    data_(data),
+    base_addr_(base_addr),
+    pos_(data.begin()) {
+        ++(*this);
+    }

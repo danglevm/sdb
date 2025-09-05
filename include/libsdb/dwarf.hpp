@@ -188,7 +188,6 @@ namespace sdb {
     class dwarf;
     class die;
     class compile_unit;
-    class die;
 
 
     /* ULEB128 encoding for both fields */
@@ -205,9 +204,77 @@ namespace sdb {
 
     };
 
+    class range_list {
+        public:
+            range_list(const compile_unit* cu, 
+                sdb::span<const std::byte> data,
+                file_addr base_addr) :
+                cu_(cu), data_(data), base_addr_(base_addr){}
+
+                struct entry {
+                    file_addr low;
+                    file_addr high;
+
+                    bool contains(file_addr addr) const {
+                        return low <= addr && addr < high;
+                    };
+                };
+
+                class iterator;
+                iterator begin() const;
+                iterator end() const;
+
+                bool contains(file_addr address) const;
+        private:
+            const compile_unit* cu_;
+            sdb::span<const std::byte> data_;
+            sdb::file_addr base_addr_;
+    };
+
+    class range_list::iterator {
+        public:
+            using value_type = entry; /* type being iterated over */
+            using reference = const entry&; /* type returned by operator* */
+            using pointer = const entry*; /* type returned by operator-> */
+            using difference_type = std::ptrdiff_t; /* type returned by subtracting two iterators */
+            
+            /* only for moving forward, but support multi-passes */
+            using iterator_category = std::forward_iterator_tag;
+
+            iterator() = default;
+            iterator(const iterator&) = default;
+            iterator& operator=(const iterator&) = default;
+
+            iterator(const compile_unit* cu, 
+                    sdb::span<const std::byte> data,
+                    file_addr base_addr);
+
+
+            /* access wrapped DIE */
+            const entry& operator*() const { return current_;}
+            const entry* operator->() const { return &current_;}
+
+
+            /* when we have finished iterating */
+            bool operator==(iterator rhs) const { return pos_ == rhs.pos_;}
+            bool operator!=(iterator rhs) const { return pos_ == rhs.pos_;}
+
+            /* advancing to next DIE */
+            iterator& operator++(); //pre-increment
+            iterator operator++(int); //post-increment
+
+        private:
+            const compile_unit* cu_ = nullptr;
+            span<const std::byte> data_{nullptr, nullptr};
+            file_addr base_addr_;
+            const std::byte* pos_ = nullptr;
+            entry current_;
+    };
+
     class attr {
         public:
-            attr(const compile_unit* cu, std::uint64_t type, std::uint64_t form, const std::byte* attr_loc) :
+            attr(const compile_unit* cu, std::uint64_t type, 
+                std::uint64_t form, const std::byte* attr_loc) :
             cu_(cu), type_(type), form_(form), attr_loc_(attr_loc) {}
 
             /* get functions */
@@ -224,10 +291,14 @@ namespace sdb {
 
             /* retrieves value of block DIEs */
             span<const std::byte> as_block() const;
+
+            /* parse value of DIE cursor as int */
             std::uint64_t as_int() const;
+
+            /* parse value of DIE cursor as string */
             std::string_view as_string() const;
             
-            /* parse DIE at that offset */
+            /* parse DIE at that offset of cursor */
             die as_reference() const;
              
         private:
@@ -248,6 +319,8 @@ namespace sdb {
             compile_unit(sdb::dwarf& parent, sdb::span<const std::byte> data, std::size_t abbrev_offset) :
             parent_(&parent), data_(data), abbrev_offset_(abbrev_offset) {}
             sdb::span<const std::byte> data() const { return data_;} 
+
+            /* retrieves compile unit this DWARF is a part of */
             const sdb::dwarf* parent() const { return parent_;}
 
             /* retrieves the abbrev table for this compile unit */
@@ -296,12 +369,16 @@ namespace sdb {
             class children_range;
             children_range children() const;
 
-            /* checks if DIE has an attribute of that type */
-            /* check attribute specifications and find corresponding attribute */
+            /* check if DIE has attribute of that type, find corresponding attribute */
             bool contains(std::uint64_t attr) const;
 
             /* retrieves attribute value */
             attr operator[](std::uint64_t attr) const;
+
+            /* retrieves value at DW_AT_low_pc and DW_AT_high_pc */
+            /* contiguous memory ranges */
+            file_addr low_pc() const;  
+            file_addr high_pc() const;
 
         private:
             const std::byte* pos_ = nullptr;

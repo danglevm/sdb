@@ -34,11 +34,21 @@ I started this project out of my love for systems programming. Frankly, I really
 ```
 git clone https://github.com/YOUR-USERNAME/baremetal-STM32-RTOS.git
 ```
+2. Install the required packages
+```
+sudo apt-get update
+sudo apt-get install libreadline-dev
+sudo apt-get install libfmt-dev
+sudo apt-get install libzydis-dev
+sudo apt-get install catch2
+```
+
 
 
 
 ![image](https://github.com/danglevm/2DJavaGame/assets/84720339/54814ca5-0f88-41e8-bff0-80267fe03b77)
 ## 📷 Screenshots and Video 
+<img width="2186" height="340" alt="image" src="https://github.com/user-attachments/assets/10196b60-7ebc-4fee-bad7-96d9e4c7e134" />
 
 
 

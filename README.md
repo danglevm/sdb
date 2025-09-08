@@ -37,13 +37,10 @@ git clone https://github.com/YOUR-USERNAME/baremetal-STM32-RTOS.git
 2. Install the required packages
 ```
 sudo apt-get update
-sudo apt-get install libreadline-dev
-sudo apt-get install libfmt-dev
-sudo apt-get install libzydis-dev
-sudo apt-get install catch2
+sudo apt-get install libreadline-dev libfmt-dev libzydis-dev catch2
 ```
-
-
+3. Build the binary
+4. Run `sdb <target>` and use `help` to list out commands
 
 
 ![image](https://github.com/danglevm/2DJavaGame/assets/84720339/54814ca5-0f88-41e8-bff0-80267fe03b77)

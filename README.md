@@ -2,7 +2,7 @@
 ![image](https://github.com/danglevm/2DJavaGame/assets/84720339/97dcd99c-9733-4fa2-a236-aee0da234665)
 
 ## 📄 Overview 
-Command-line debugger for native C++ code written with modern C++ (C++ 18). Has support for x64 architectures. Works on Linux or WSL
+Command-line debugger for native C++ code written with modern C++ (C++ 17). Has support for x64 architectures. Works on Linux or WSL
 
 I started this project out of my love for systems programming. Frankly, I really didn't think of a practical need for this since that wasn't the priority I had in mind. Rather, I just wanted to work on and develop my skills in something I really like.
 
